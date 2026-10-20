@@ -1,0 +1,5 @@
+# Session logs and hook errors (machine-specific; not shared for now)
+docs/activities-outputs/session-logs/
+
+# Local OpenRouter launcher (not shared for now)
+claude-openrouter.ps1
