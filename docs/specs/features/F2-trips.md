@@ -1,6 +1,6 @@
 # F2 — Trips
 
-_Status: Approved · Last updated: 2026-10-20 · Source: product.md, MVP scope (F2 row)_
+_Status: Approved · Last updated: 2026-10-21 · Source: product.md, MVP scope (F2 row)_
 
 ## Summary
 A logged-in user creates a trip with a name, sees a list of their own trips, opens one, and deletes it. A trip is the group that F3–F6 build on, so F2 is where the shared spending starts. Each user sees only their own trips.
@@ -25,6 +25,7 @@ A logged-in user creates a trip with a name, sees a list of their own trips, ope
 - Undo after deleting a trip. R8 asks for a confirmation only.
 - Adding people (F3), expenses (F4), balances (F5) and settling up (F6). The trip page shows only its name and Delete button until then.
 - Totals, people and expense counts, and settle status on trip cards. These depend on F3–F6 and are added as those features are built.
+- The "..." menu on trip cards in the "Your trips" mockup. Delete is available only from the trip page (F2.R6, F2.R7).
 - Sharing a trip with other users. product.md, After the core: out of scope.
 
 ## User flow & screens
@@ -161,7 +162,7 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - **End-to-end:** the empty state, the placeholder trip page and the absence of an edit control (F2.AC8, F2.AC12, F2.AC13).
 
 ## Open questions
-- [ ] Trip card menu: the "Your trips" mockup shows a "..." menu on each card. F2 deletes a trip only from its trip page (F2.R6, F2.R7). Should the card menu also get a Delete option? Not decided; not in the approved spec.
+- [x] Trip card menu: resolved on 2026-10-21. Delete stays on the trip page only. The card "..." menu is out of F2.
 - [x] Copy: approved with the spec on 2026-10-20.
 - [x] Mock screens: resolved on 2026-10-20. The mockups are in `docs/design/mockups/`.
 
@@ -179,3 +180,4 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - 2026-10-20: Mockups added. Should the delete dialog use the mockup copy and counts? → Yes. The counts are 0 in F2 until F3–F6 exist.
 - 2026-10-20: What should the trip list show in F2? → Trip name and Delete only. Totals and settle status come with F3–F6.
 - 2026-10-20: Approve the spec? → Yes. Status set to Approved. Card-menu Delete question left open.
+- 2026-10-21: Should trip cards get a Delete option in their "..." menu? → No. Delete stays on the trip page only (F2.R6, F2.R7). No requirement changed; status stays Approved.
