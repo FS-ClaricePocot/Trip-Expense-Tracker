@@ -1,6 +1,6 @@
 # F3 — People
 
-_Status: Approved · Last updated: 2026-10-20 · Source: product.md, MVP scope (F3 row)_
+_Status: Approved · Last updated: 2026-10-21 · Source: product.md, MVP scope (F3 row)_
 
 ## Summary
 A user adds the people who share a trip's expenses, and removes them when they are not needed. People are names only. They have no accounts, so a person cannot log in or see the trip. A person who is already part of an expense or payment cannot be removed, because that would change the balances. F4 (expenses) and F6 (settle up) depend on this list.
@@ -114,7 +114,7 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - A person who is in a payment but no expense cannot be removed (F3.R7). This can happen after an expense is deleted (F4). The tag reads "In payments" in that case.
 - A person in an expense cannot be removed, even when the expense is their only one (F3.R7).
 - Deleting the trip deletes its people (F3.R11).
-- Removing the last person on a trip is allowed, and the trip then has no people. _(Proposed, not stated. A trip with no people cannot have an expense, because an expense needs at least one participant, product.md R2.)_
+- Removing the last person on a trip is allowed, and the trip then has no people. _(Decided by the user on 2026-10-21. A trip with no people cannot have an expense, because an expense needs at least one participant, product.md R2.)_
 - Both the database and the server refuse a removal of a person in use, so the interface cannot be used to bypass the rule (F3.R7).
 
 ## Acceptance criteria
@@ -155,7 +155,7 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 ## Open questions
 - [x] Copy: approved with the spec on 2026-10-20.
 - [x] Label for a person who is in a payment but no expense: "In payments", accepted for now on 2026-10-20. The mockup shows only "In expenses", so the wording may change when the design is revised.
-- [ ] Removing the last person on a trip: allowed in the approved spec as a proposal, not stated in product.md. Confirm or change it before F3 is built.
+- [x] Removing the last person on a trip: allowed, decided on 2026-10-21 (see Decisions log). product.md still does not state it.
 
 ## Decisions log
 - 2026-10-20: Should the duplicate check for person names ignore capital letters? → Yes.
@@ -165,3 +165,4 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - 2026-10-20: Is a person's name required, and should spaces at its ends be removed? → Required, with spaces at the ends removed.
 - 2026-10-20: Label for a person who is in a payment but no expense? → "In payments", for now.
 - 2026-10-20: Approve the spec? → Yes. Status set to Approved. Copy approved. Removing the last person is still an open question.
+- 2026-10-21: Should removing the last person on a trip be allowed? → Yes, allowed. Confirms the spec's proposal; no requirement changed, so status stays Approved.

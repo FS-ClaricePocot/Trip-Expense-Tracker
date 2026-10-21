@@ -1,6 +1,6 @@
 # F4 — Expenses
 
-_Status: Approved · Last updated: 2026-10-20 · Source: product.md, MVP scope (F4 row)_
+_Status: Draft · Last updated: 2026-10-21 · Source: product.md, MVP scope (F4 row)_
 
 ## Summary
 A user records what was spent on a trip: a description, an amount, who paid, and who shares it. Each expense is split equally between the people who share it, to the cent. Expenses are what the balances (F5) and suggested payments (F6) are built from, so a correct split matters for the whole app. An expense can be deleted, but not edited, so a mistake is fixed by deleting it and adding it again.
@@ -68,6 +68,7 @@ Mockup differences in this spec:
   - Activities (ticket): for example tour, entry, tickets
   - Generic money icon: used when no keyword matches, and the default
   The keyword lists for each icon are an open question. _(Icon set and generic fallback decided by the user. The user chose the app-picks option over a picker.)_
+  **Interim (2026-10-21):** until the keyword lists are decided, every row shows the generic money icon. The category icons above do not appear yet.
 - **F4.R12** An expense cannot be edited. A mistake is fixed by deleting the expense and adding it again. _(product.md, Assumptions: "No editing.")_
 - **F4.R13** The Expenses panel shows the number of expenses and their total. The total is the sum of all expense amounts on the trip (mockup).
 - **F4.R14** An expense is removed when its trip is deleted (F2.R12). Removing an expense is also the only way a person stops being "in an expense" (F3.R7).
@@ -201,8 +202,8 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 
 ## Open questions
 - [x] Copy: the States table is approved on 2026-10-20.
-- [ ] Icon keywords (F4.R11): which words in a description map to each of the four icons (transport, food and drink, lodging, activities). The examples in F4.R11 are not final.
-- [x] Per-person shares (F4.R10a): shown expanded under the row, decided on 2026-10-20. The mockup has no expanded state, so its look needs a design.
+- [ ] Icon keywords (F4.R11): which words in a description map to each of the four icons (transport, food and drink, lodging, activities). The examples in F4.R11 are not final. _Interim: generic icon on every row, decided 2026-10-21._
+- [x] Per-person shares (F4.R10a): shown in a pop-up dialog (changed from the expanded row on 2026-10-20; see Decisions log). The dialog copy is in the States table.
 
 ## Decisions log
 - 2026-10-20: How long can an expense description be? → 100 characters.
@@ -222,3 +223,4 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - 2026-10-20: Where should per-person shares appear? → Expanded under the row (F4.R10a).
 - 2026-10-20: Changed: how should the per-person shares appear? → A pop-up dialog, not an expanded row (F4.R10a).
 - 2026-10-20: Approve the spec? → Yes. Status set to Approved. Copy approved, including the shares dialog. The icon keyword lists (F4.R11) are still open.
+- 2026-10-21: Which description keywords should pick each icon? → Not decided. The user chose a generic icon on every row for now. F4.R11 changed as a result, so the spec is back to Draft until the user approves it. Keyword lists stay open.
