@@ -12,14 +12,14 @@ Target feature: **$ARGUMENTS**
 
 ## 1. Resolve the feature
 
-- Expect an ID like `F2` (accept `f2` or `2`). No argument → list the feature IDs and names from product.md §3 and ask which one.
-- Find its row in the §3 tables (MVP or Later). Not found → say so and list the valid IDs. Don't guess a close match.
+- Expect an ID like `F2` (accept `f2` or `2`). No argument → list the feature IDs and names from product.md and ask which one.
+- Find its row in the tables (MVP). Not found → say so and list the valid IDs. Don't guess a close match.
 - `<slug>` = the feature name in kebab-case (`F1-registration-and-login.md`).
 - If that file already exists, read it and **revise** it: keep earlier answers in its Decisions log, and only ask about what's still open or has changed. If you change the substance of an `Approved` spec, set it back to `Draft` and note that in the Decisions log, because its plan (`docs/plans/`) may now be out of date.
 
 ## 2. Gather context (read, don't skim)
 
-- All of section of `docs/specs/product.md`. A feature usually touches several of these sections.
+- All sections of `docs/specs/product.md`. A feature usually touches several of these sections.
 - Other files in `docs/specs/features/`, to stay consistent and spot dependencies.
 
 ## 3. Separate what's known from what isn't
@@ -81,7 +81,7 @@ Keyboard, focus, labels, contrast, and reduced motion, as they apply to this fea
 - **F<N>.AC1** Given … when … then …
 
 ## Dependencies
-Other features (F-IDs), build-order step (§8), and external services.
+Other features (F-IDs), build-order step, and external services.
 
 ## Test plan
 Unit tests, each mapped to the AC IDs.
