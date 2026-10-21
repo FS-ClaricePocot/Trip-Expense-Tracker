@@ -1,6 +1,6 @@
 # F4 — Expenses
 
-_Status: Draft · Last updated: 2026-10-21 · Source: product.md, MVP scope (F4 row)_
+_Status: Approved · Last updated: 2026-10-21 · Source: product.md, MVP scope (F4 row)_
 
 ## Summary
 A user records what was spent on a trip: a description, an amount, who paid, and who shares it. Each expense is split equally between the people who share it, to the cent. Expenses are what the balances (F5) and suggested payments (F6) are built from, so a correct split matters for the whole app. An expense can be deleted, but not edited, so a mistake is fixed by deleting it and adding it again.
@@ -223,4 +223,5 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - 2026-10-20: Where should per-person shares appear? → Expanded under the row (F4.R10a).
 - 2026-10-20: Changed: how should the per-person shares appear? → A pop-up dialog, not an expanded row (F4.R10a).
 - 2026-10-20: Approve the spec? → Yes. Status set to Approved. Copy approved, including the shares dialog. The icon keyword lists (F4.R11) are still open.
-- 2026-10-21: Which description keywords should pick each icon? → Not decided. The user chose a generic icon on every row for now. F4.R11 changed as a result, so the spec is back to Draft until the user approves it. Keyword lists stay open.
+- 2026-10-21: Which description keywords should pick each icon? → Not decided. The user chose a generic icon on every row for now. F4.R11 changed as a result, so the spec went back to Draft.
+- 2026-10-21: Approve the spec? → Yes. Status set to Approved. The icon keyword lists stay open, and the interim generic-icon rule (F4.R11) applies until they are decided.
