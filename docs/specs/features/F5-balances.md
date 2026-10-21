@@ -116,7 +116,7 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - **F5.AC10** Given Example 1, when I view the tiles, then Total spent shows 120.00.
 - **F5.AC11** Given a balance of 1842.50, when I view it, then the amount shows as `1,842.50`.
 - **F5.AC12** Given user B requests user A's trip balances, then B gets "This trip no longer exists." (F5.R12).
-- **F5.AC13** Given I am on a trip list, when I view a card, then it shows no balance status (F5.R10).
+- **F5.AC13** In F5, given I am on a trip list, when I view a card, then it shows no balance status (F5.R10). From F6 on, cards show the status instead (F6.AC17–AC21).
 - **F5.AC14** Given Sam paid 30.00 for an expense shared by Alex and Jo, with Sam not a participant, when I view balances, then Sam is owed 30.00, Alex owes 15.00 and Jo owes 15.00.
 - **F5.AC15** Given the Balances panel, when I look for a control, then none lets me type or change a balance (F5.R11).
 - **F5.AC16** Given the balances do not add up to 0.00 (forced in a test), when I view the panel, then the balances are not shown and the error copy appears.
@@ -155,3 +155,4 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - 2026-10-20: Should the trip list cards show balance status now, or wait until F6? → Wait for F6.
 - 2026-10-20: Bar scale? → Follow the mockup: fixed scale, 50.00 at halfway. Balances above 50.00 stop at the track end (tag shows the full amount).
 - 2026-10-20: Approve the spec? → Yes. Status set to Approved. Copy approved.
+- 2026-10-21: How should F5.AC13 (no balance status on cards) work now that F6 adds it? → It applies to F5 only, as F5.R10 already says. F6.AC17–AC21 replace it from F6 on. No behavior changed, so status stays Approved.

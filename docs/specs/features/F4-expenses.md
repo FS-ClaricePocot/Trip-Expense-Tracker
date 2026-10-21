@@ -17,6 +17,7 @@ A user records what was spent on a trip: a description, an amount, who paid, and
 - Expense list, newest first, with a total (F4.R8, R13)
 - Delete an expense after confirmation (F4.R9)
 - The expense is what counts as "in an expense" for people (F3.R7). F4 turns on that check.
+- Expense count and total on each trip's card in the trip list (F4.R17–R18). F2 deferred this to the feature that adds expenses.
 
 **Out:**
 - Editing an expense. product.md, Assumptions: "No editing."
@@ -26,6 +27,7 @@ A user records what was spent on a trip: a description, an amount, who paid, and
 - Currency or conversion. product.md, Assumptions: "One currency."
 - Balances (F5) and suggested payments and settling up (F6). They read expenses but are specified separately.
 - Maximum number of expenses per trip. Not limited (see Decisions log).
+- The "Add the first expense" button on a trip card with no expenses (mockup). Not built; the card shows "no expenses yet" only (F4.R17). Decided 2026-10-21.
 
 ## User flow & screens
 1. The user opens a trip (F2.R6) and sees the **Expenses** view, with the total and the list.
@@ -75,6 +77,9 @@ Mockup differences in this spec:
 - **F4.R15** Every expense request is checked against the logged-in user and the trip owner (F1.R9). A request for a trip owned by someone else, or for a trip that does not exist, gets the same "not found" response.
 - **F4.R16** The expense list has no limit on the number of expenses per trip. _(Decided by the user.)_
 
+- **F4.R17** Each trip card in the trip list shows the number of expenses: "{n} expenses", or "1 expense" for one. A trip with no expenses shows "no expenses yet". _(Wording from the mockup's card text, with the singular decided on 2026-10-21.)_
+- **F4.R18** Each trip card with at least one expense shows "Total spent" and the trip's total (F4.R13). A trip with no expenses shows no total line. _(Decided 2026-10-21.)_
+
 ## Data & contract
 **Expense (new record):**
 - `id`
@@ -100,6 +105,8 @@ An expense must have at least one participant. The app enforces this when saving
 - **List expenses:** returns the trip's expenses, newest first, each with its payer, participants and shares, and the total.
 - **Add expense:** takes a description, an amount as decimal text with at most 2 decimal places, a payer, and the list of participants. The amount is converted to whole cents on the server. It is refused with a validation error if any rule in F4.R2–R5 fails.
 - **Delete expense:** deletes one expense on a trip the user owns.
+
+- **Trip list (F2):** each trip in the list also returns its expense count and total (F4.R17, F4.R18).
 
 All requests need a logged-in session and an owned trip (F4.R15).
 
@@ -127,6 +134,9 @@ Copy below is a **draft** from Claude, for your review. It becomes final once th
 | Shares dialog | User selects an expense row (F4.R10a) | Dialog listing each participant's share, with Close | Title: "Shares for {description}". Total label: "Total". Close button: "Close" (approved with the spec on 2026-10-20) |
 | Expense not found | Deleted in another tab, or not on this trip | Message in the panel | "This expense no longer exists." |
 | Trip not found | Request for a trip the user does not own, or a missing trip (F4.R15) | Same as F2 | "This trip no longer exists." (F2 copy) |
+| Card: expense count | The trip has expenses (F4.R17) | Text on the trip card | "{n} expenses", or "1 expense" for one |
+| Card: no expenses | The trip has no expenses (F4.R17) | Text on the trip card | "no expenses yet" (mockup) |
+| Card: total | The trip has expenses (F4.R18) | "Total spent" label and the amount on the trip card | "Total spent" (mockup), then the amount |
 | Network or server error | Request fails | Shown above the form or dialog | "Something went wrong. Please try again." (F1 copy) |
 
 Labels and helper text from the mockup (final): "What was it for?", "Amount", "Paid by", "Split between", "Add expense", and "Split equally · leftover cents go to people in the order they were added". Placeholders from the mockup, which are examples only: "Strawberry farm tickets" and "0.00".
@@ -143,6 +153,7 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - The icon on each row is decorative (`aria-hidden`). The description carries the meaning.
 - Text and error colours meet at least 4.5:1 contrast (WCAG 1.4.3).
 - Controls are at least 24×24 CSS pixels (WCAG 2.5.8).
+- The card's expense count and total are text (F4.R17, F4.R18).
 - No animation is needed. Reduced-motion support applies only if animation is added later.
 
 ## Edge cases
@@ -155,6 +166,7 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - The leftover-cent order uses the order people were added to the trip (F3.R5), not the order of the checkboxes.
 - An expense deleted in another tab: opening or deleting it there shows "This expense no longer exists."
 - Two identical expenses (same description, amount and payer) are both accepted. Nothing in product.md prevents it.
+- A trip with one expense shows "1 expense" on its card, and its total (F4.R17, F4.R18).
 - Deleting an expense can end a person's "in expenses" status (F3.R7). The tag becomes "In payments" or disappears, depending on F6.
 
 ## Acceptance criteria
@@ -176,6 +188,10 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - **F4.AC16** Given a trip has expenses, when I view the Expenses panel, then the total equals the sum of every expense amount (F4.R13).
 - **F4.AC17** Given an expense row, when I read it, then it shows the description, the amount, the payer and "split N ways", with no per-person share (F4.R10).
 - **F4.AC18** Given an expense row, when I select it, then a dialog opens listing each participant's name and share in the order they were added, with the total. When I choose Close, the dialog closes and the trip page is unchanged (F4.R10a).
+
+- **F4.AC19** Given a trip with three expenses, when I view the trip list, then its card shows "3 expenses" and the total (F4.R17, F4.R18).
+- **F4.AC20** Given a trip with one expense, when I view the trip list, then its card shows "1 expense" (F4.R17).
+- **F4.AC21** Given a trip with no expenses, when I view the trip list, then its card shows "no expenses yet" and no total line (F4.R17, F4.R18).
 
 ## Dependencies
 - **Depends on:** F1 (login and ownership, F1.R9), F2 (trips, F2.R12 deletion), F3 (people, the payer and participants, F3.R5 order, F3.R7 in-use check).
@@ -199,6 +215,8 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - **Integration:** deleting the only expense involving a person clears their in-use status (F4.AC13, F3.R7).
 - **Integration:** another user's trip cannot be read or changed through the expense endpoints (F4.AC14, F4.R15).
 - **End-to-end:** the rows have no edit control (F4.AC15).
+- **Unit:** the card's expense text: "1 expense", "3 expenses" and "no expenses yet", and the total line shown only with expenses (F4.AC19, F4.AC20, F4.AC21).
+- **Integration:** the trip list's expense count and total match the expense list for the same trip (F4.R17, F4.R18).
 
 ## Open questions
 - [x] Copy: the States table is approved on 2026-10-20.
@@ -225,3 +243,5 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - 2026-10-20: Approve the spec? → Yes. Status set to Approved. Copy approved, including the shares dialog. The icon keyword lists (F4.R11) are still open.
 - 2026-10-21: Which description keywords should pick each icon? → Not decided. The user chose a generic icon on every row for now. F4.R11 changed as a result, so the spec went back to Draft.
 - 2026-10-21: Approve the spec? → Yes. Status set to Approved. The icon keyword lists stay open, and the interim generic-icon rule (F4.R11) applies until they are decided.
+- 2026-10-21: How should a trip card show its expenses and total? → "{n} expenses", "1 expense" for one, and "no expenses yet" for none. The total is shown only when there are expenses. Added as F4.R17–R18 and F4.AC19–AC21. This changes the approved spec, so it was set back to Draft.
+- 2026-10-21: Approve the revised spec? → Yes. Status set to Approved.

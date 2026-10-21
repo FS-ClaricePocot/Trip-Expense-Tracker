@@ -1,6 +1,6 @@
 # F6 — Settle up
 
-_Status: Approved · Last updated: 2026-10-20 · Source: product.md, MVP scope (F6 row)_
+_Status: Approved · Last updated: 2026-10-21 · Source: product.md, MVP scope (F6 row)_
 
 ## Summary
 After the expenses are in, the app proposes the fewest payments it can to bring every balance to zero, and the user marks each one as paid once the money has moved outside the app. The app only records that a payment was made. Marking a payment as paid changes the balances, so the proposals update until everyone is settled. A recorded payment can be deleted if it was marked by mistake.
@@ -18,6 +18,7 @@ After the expenses are in, the app proposes the fewest payments it can to bring 
 - Delete a payment after confirmation (F6.R8)
 - Settle up view: summary tiles and the Balances panel (F6.R12–R13)
 - Settled state when every balance is zero (F6.R14)
+- Settle status on each trip's card in the trip list: payments to settle, or settled up (F6.R19–R20). F5.R10 says this is added with F6.
 
 **Out:**
 - Partial payments. A payment is a suggested payment marked as paid, so it is always the full suggested amount (product.md, Key terms).
@@ -27,6 +28,7 @@ After the expenses are in, the app proposes the fewest payments it can to bring 
 - Currency and conversion. product.md, Assumptions.
 - Notifications or reminders to people who owe money. Not in product.md.
 - Checking a person's account or paying them on the app. Persons have no accounts (product.md, Roles).
+- Totals, people counts and expense counts on trip list cards. F3 adds the people count and F4 adds the expense count and total, by revising their specs (decided 2026-10-21).
 
 ## User flow & screens
 1. The user opens a trip (F2.R6) and selects **Settle up** in the trip's view switch. The Expenses view is the other option (mockup).
@@ -73,6 +75,13 @@ Screen names: Settle up view, suggested payments panel, mark-as-paid dialog, pay
 - **F6.R17** Deleting a trip deletes its payments (F2.R12).
 - **F6.R18** A payment is recorded only for the suggestion the user saw. If the suggestions have changed, the payment is not recorded, and the user is asked to review them again (F6.AC9). _(Decided by the user.)_
 
+- **F6.R19** Each trip card in the trip list shows its settle status (F5.R10):
+  - if the trip has suggested payments, the card shows "{n} payments to settle", or "1 payment to settle" for one, in the amber style;
+  - if the trip has at least one expense and every balance is zero, the card shows "Settled up", in the green style with a check mark;
+  - if the trip has no expenses, the card shows no status.
+  The count and state match the settle-up view for the same trip (F6.R1, F6.R14).
+- **F6.R20** The status is text, not colour alone. The card keeps its link to the trip page, and it still has no Delete control (F2.R6, F2.R7). The status is worked out from the current balances, so it changes when expenses or payments change (F5.R7).
+
 ## Data & contract
 **Payment (new record):**
 - `id`
@@ -92,6 +101,7 @@ Screen names: Settle up view, suggested payments panel, mark-as-paid dialog, pay
 - **Get settle-up:** returns the suggested payments in order, the payments made (newest first), Paid back so far, the owed total, Left to settle, the number of suggested payments, and the percentage.
 - **Mark as paid:** takes the payer, the payee and the amount the user saw. The server checks that this matches a current suggestion, and then records the payment. If it does not match, the request is refused with the error in the States table (F6.R18).
 - **Delete payment:** deletes one payment on a trip the user owns.
+- **Trip list (F2):** each trip in the list also returns its settle status: "payments to settle" with the count, "settled up", or none (F6.R19).
 
 Errors use the copy in the States table. All requests need a logged-in session and an owned trip (F6.R15).
 
@@ -112,6 +122,9 @@ Copy below is a **draft** from Claude, for your review. It becomes final once th
 | Payment deleted | Success | The row disappears. Suggestions, tiles and balances update | "Payment deleted." |
 | Payment not found | Deleted in another tab, or not on this trip (F6.R15) | Message in the Payments made list | "This payment no longer exists." |
 | Trip not found | Request for a trip the user does not own, or a missing trip (F6.R15) | Same as F2 | "This trip no longer exists." (F2 copy) |
+| Card: payments to settle | The trip has suggested payments (F6.R19) | Amber badge on the trip card | "{n} payments to settle", or "1 payment to settle" for one |
+| Card: settled up | The trip has expenses and every balance is zero (F6.R19) | Green badge with a check mark on the trip card | "Settled up" |
+| Card: no status | The trip has no expenses (F6.R19) | No badge on the trip card | _(none)_ |
 | Network or server error | Request fails | Shown above the panel or in the dialog | "Something went wrong. Please try again." (F1 copy) |
 
 Tile labels (mockup, final): "Paid back so far", "of {owed} owed", "Left to settle", "in {n} payments", "Total spent", "across {n} expenses". Row layout (mockup, final): "{payer} pays {payee}", "Settles {payer}'s balance". Button: "Mark as paid". Payments made heading (mockup, final): "Payments made", "{n} payments". Payment row (mockup, final): "{payer} paid {payee}", "Marked paid · {date}".
@@ -128,6 +141,7 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - Amounts and names are text. The payment direction ("pays" and "paid") is in the words, not in arrows alone. The dashed arrow in the mockup is decorative (`aria-hidden`).
 - Text and status colours meet at least 4.5:1 contrast (WCAG 1.4.3).
 - Controls are at least 24×24 CSS pixels (WCAG 2.5.8).
+- The card status is text, so it does not rely on colour alone (F6.R20).
 - No animation is needed. Reduced-motion support applies only if animation is added later.
 
 ## Edge cases
@@ -143,6 +157,7 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - Payment dates use the user's local time zone. Every payment shows the full date, day, month and year, for example "20 Oct 2026". The mockup's "20 Oct" is extended with the year. _(Full date decided by the user.)_
 - Two payments with the same payer, payee and amount are both kept. Nothing in product.md prevents it.
 - A "Mark as paid" on a suggestion that changed in another tab is refused with the copy in the States table (F6.R18).
+- A trip whose balances are all zero shows "Settled up" on its card, whether the zero came from payments or from expenses that already net out (F6.R19).
 
 ## Acceptance criteria
 - **F6.AC1** Given Example 1 (Sam owed 50.00, Alex owes 10.00, Jo owes 40.00), when I open Settle up, then the suggested payments are Jo pays Sam 40.00 and Alex pays Sam 10.00, in that order.
@@ -161,9 +176,14 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - **F6.AC14** Given a trip with no expenses, when I open Settle up, then the suggestions panel shows "Everyone is settled up.", and the percentage area shows "Nothing to settle yet." (F6.R14, the States table).
 - **F6.AC15** Given the Payments made list has payments, when I view it, then the newest payment is at the top (F6.R7).
 - **F6.AC16** Given I delete a trip with recorded payments, then those payments are gone (F6.R17).
+- **F6.AC17** Given a trip with two suggested payments, when I view the trip list, then its card shows "2 payments to settle" (F6.R19).
+- **F6.AC18** Given a trip with one suggested payment, when I view the trip list, then its card shows "1 payment to settle" (F6.R19).
+- **F6.AC19** Given every balance on a trip is zero and the trip has expenses, when I view the trip list, then its card shows "Settled up" (F6.R19).
+- **F6.AC20** Given a trip with no expenses, when I view the trip list, then its card shows no status (F6.R19).
+- **F6.AC21** Given user B has a trip with a status, when I view the trip list as user A, then B's trip and its status do not appear (F6.R19, F2.R5).
 
 ## Dependencies
-- **Depends on:** F1 (login and ownership, F1.R9), F2 (trips, F2.R12 deletion), F3 (people, the in-use check, F3.R7), F4 (expenses and total, F4.R13), F5 (balances, the Balances panel, F5.R1, F5.R3, F5.R8).
+- **Depends on:** F1 (login and ownership, F1.R9), F2 (trips, F2.R12 deletion), F3 (people, the in-use check, F3.R7), F4 (expenses and total, F4.R13), F5 (balances, the Balances panel, F5.R1, F5.R3, F5.R8, and F5.R10, the card status, added here).
 - **Needed by:** none in the MVP. F6 is the last feature in the MVP table.
 - **Build order (§8):** not in product.md, so the order given by the MVP table is used. F6 is the sixth and last step.
 - **External services:** none. Money moves outside the app (product.md, Assumptions).
@@ -183,11 +203,17 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - **Integration:** another user's settle-up data cannot be read or changed (F6.AC13, F6.R15).
 - **Integration:** deleting a trip deletes its payments (F6.AC16, F6.R17).
 - **End-to-end:** the Payments made rows have no edit control (F6.AC11), and the list is newest first (F6.AC15).
+- **Unit:** the card status rule: "payments to settle" with the count, "1 payment to settle", "settled up", and no status with no expenses (F6.AC17, F6.AC18, F6.AC19, F6.AC20, F6.R19).
+- **Integration:** the trip list shows each trip's status from its own balances, and shows only the logged-in user's trips (F6.AC17, F6.AC21).
+- **End-to-end:** the trip list cards show the badges for Example 1 and after a payment (F6.AC17, F6.AC19).
 
 ## Open questions
 - [x] Copy: the States table is approved on 2026-10-20.
 - [x] Stale suggestions (F6.R18): decided on 2026-10-20. The payment is refused and the user is asked to review again.
 - [x] Payment dates: decided on 2026-10-20. Every payment shows the full date.
+- [x] Card status wording: "{n} payments to settle", "1 payment to settle", "Settled up". Decided 2026-10-21.
+- [x] Card with no expenses: no status. Decided 2026-10-21.
+- [x] Card totals, people counts and expense counts: not in F6. F3 adds the people count and F4 adds the expense count and total, by revising their specs. Those revisions are still to be done.
 
 ## Decisions log
 - 2026-10-20: Settling up method: should F6 follow R6 as written, or search for the true minimum number of payments? → Follow R6 as written. Note that Goals say "as few payments as possible", and R6 may occasionally give one more.
@@ -202,3 +228,8 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - 2026-10-20: Approve the spec? → Yes. Status set to Approved. Copy and both decisions above are included.
 - 2026-10-20: Stale suggestions: refuse the payment and ask the user to review again? → Yes.
 - 2026-10-20: Payment dates: show the year only for earlier years, or the full date always? → Full date on every payment.
+- 2026-10-21: Should the trip list cards show settle status? → Yes, as F5.R10 said it would be added with F6. Added as F6.R19–R20 and F6.AC17–AC21. This changes the approved spec, so it was set back to Draft.
+- 2026-10-21: Card wording for one suggested payment? → "1 payment to settle".
+- 2026-10-21: Card for a trip with no expenses? → No status.
+- 2026-10-21: Card totals, people counts and expense counts? → Not in F6. F3 and F4 are to be revised to add them, which will set those specs back to Draft.
+- 2026-10-21: Approve the spec? → Yes. Status set to Approved. The card wording decided on 2026-10-21 is included.

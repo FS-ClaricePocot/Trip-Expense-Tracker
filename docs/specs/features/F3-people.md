@@ -17,6 +17,7 @@ A user adds the people who share a trip's expenses, and removes them when they a
 - Remove a person with a confirmation (F3.R6)
 - Block removal of a person who is in an expense or payment (F3.R7)
 - People panel on the trip page, with the helper text from the mockup (F3.R12)
+- People count on each trip's card in the trip list (F3.R13–R14). F2 deferred this to the feature that adds people.
 
 **Out:**
 - Renaming a person. product.md, Assumptions: "No editing."
@@ -56,6 +57,9 @@ Screen names: trip page (People panel), remove-person dialog.
 - **F3.R11** Deleting a trip also deletes its people (F2.R12).
 - **F3.R12** The trip page shows a People panel with the count of people, the list, the "Add a person" field and the helper text: "Names are unique on a trip. People in an expense or payment can't be removed." When the trip has no people, it shows the empty state.
 
+- **F3.R13** Each trip card in the trip list shows the number of people on the trip: "{n} people", or "1 person" for one. A trip with no people shows "No people yet". _(Wording decided by the user on 2026-10-21. F2.R5 and the mockup's card text.)_
+- **F3.R14** The card's count matches the People panel for the same trip, and it changes when people are added or removed.
+
 ## Data & contract
 **Person (new record):**
 - `id`
@@ -72,6 +76,8 @@ Screen names: trip page (People panel), remove-person dialog.
 - **List people:** returns the trip's people, in the order they were added, and whether each person is in an expense or payment (drives the tag in F3.R7).
 - **Add person:** takes a name. Refused with a validation error for a blank or too-long name, or a duplicate (F3.R2, R3).
 - **Remove person:** removes one person. Refused if the person is in an expense or payment (F3.R7). The refusal says so, and the person stays on the trip.
+
+- **Trip list (F2):** each trip in the list also returns its people count (F3.R13).
 
 All three requests need a logged-in session and an owned trip (F3.R10).
 
@@ -93,6 +99,8 @@ Copy below is a **draft** from Claude, for your review. It becomes final once th
 | Person removed | Success | Row disappears from the list | "{name} was removed from the trip." |
 | Helper text | Always shown in the panel (F3.R12) | Text under the add field | "Names are unique on a trip. People in an expense or payment can't be removed." (mockup) |
 | Trip not found | People request for a trip the user does not own, or a missing trip (F3.R10) | Same as F2 | "This trip no longer exists." (F2 copy) |
+| Card: people count | The trip has people (F3.R13) | Text on the trip card | "{n} people", or "1 person" for one |
+| Card: no people | The trip has no people (F3.R13) | Text on the trip card | "No people yet" |
 | Network or server error | Request fails | Shown above the form or dialog | "Something went wrong. Please try again." (F1 copy) |
 
 ## Accessibility
@@ -105,6 +113,7 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - The remove dialog traps focus while open. Escape closes it and returns focus to the remove control that opened it.
 - Text and tag colours meet at least 4.5:1 contrast (WCAG 1.4.3).
 - Controls are at least 24×24 CSS pixels (WCAG 2.5.8).
+- The card's people count is text, so it does not depend on colour (F3.R13).
 - No animation is needed. Reduced-motion support applies only if animation is added later.
 
 ## Edge cases
@@ -116,6 +125,7 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - Deleting the trip deletes its people (F3.R11).
 - Removing the last person on a trip is allowed, and the trip then has no people. _(Decided by the user on 2026-10-21. A trip with no people cannot have an expense, because an expense needs at least one participant, product.md R2.)_
 - Both the database and the server refuse a removal of a person in use, so the interface cannot be used to bypass the rule (F3.R7).
+- A trip with one person shows "1 person" on its card, not "1 people" (F3.R13).
 
 ## Acceptance criteria
 - **F3.AC1** Given a trip with no people, when I add `Sam` and then `Alex`, then the list shows Sam first, then Alex.
@@ -132,6 +142,8 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - **F3.AC12** Given a trip has no people, when I view the panel, then I see the empty state and the add field.
 - **F3.AC13** Given user B requests the people of user A's trip, then B gets "This trip no longer exists." (F3.R10).
 - **F3.AC14** Given a trip with people is deleted, then its people are gone and cannot be requested (F3.R11).
+- **F3.AC15** Given a trip with three people, when I view the trip list, then its card shows "3 people" (F3.R13).
+- **F3.AC16** Given a trip with no people, when I view the trip list, then its card shows "No people yet" (F3.R13).
 
 ## Dependencies
 - **Depends on:** F1 (login and ownership, F1.R9), F2 (trips, F2.R6 trip page, F2.R12 deletion).
@@ -151,6 +163,8 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - **Integration:** another user's trip cannot be read or changed through the people endpoints (F3.AC13, F3.R10).
 - **Integration:** deleting a trip removes its people (F3.AC14, F3.R11).
 - **End-to-end:** the rename control is absent and the empty state is shown for a new trip (F3.AC11, F3.AC12).
+- **Unit:** the people count wording: "1 person", "3 people" and "No people yet" (F3.AC15, F3.AC16, F3.R13).
+- **Integration:** the trip list's people count matches the People panel for the same trip (F3.R14).
 
 ## Open questions
 - [x] Copy: approved with the spec on 2026-10-20.
@@ -166,3 +180,5 @@ Target: **WCAG 2.2 AA**, the project target set in F1.
 - 2026-10-20: Label for a person who is in a payment but no expense? → "In payments", for now.
 - 2026-10-20: Approve the spec? → Yes. Status set to Approved. Copy approved. Removing the last person is still an open question.
 - 2026-10-21: Should removing the last person on a trip be allowed? → Yes, allowed. Confirms the spec's proposal; no requirement changed, so status stays Approved.
+- 2026-10-21: How should a trip card show its people? → "{n} people", "1 person" for one, and "No people yet" for none. Added as F3.R13–R14 and F3.AC15–AC16. This changes the approved spec, so it was set back to Draft.
+- 2026-10-21: Approve the revised spec? → Yes. Status set to Approved.
