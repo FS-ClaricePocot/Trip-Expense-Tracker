@@ -1,6 +1,7 @@
 using Serilog;
 using Serilog.Events;
 using TripExpenseTracker.Api.Middleware;
+using TripExpenseTracker.Core.Auth;
 using TripExpenseTracker.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +12,13 @@ builder.Host.UseSerilog((context, configuration) => configuration
     .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
     .Enrich.FromLogContext()
     .WriteTo.Console());
+
+// Data access. The unit of work is scoped, so one request (or test scope) shares one connection and transaction.
+builder.Services.AddSingleton<IDbConnectionFactory>(_ =>
+    new NpgsqlConnectionFactory(builder.Configuration.GetConnectionString("Default")));
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IUserDao, UserDao>();
+builder.Services.AddScoped<ISessionDao, SessionDao>();
 
 var app = builder.Build();
 
