@@ -2,6 +2,14 @@
 
 Guidance for Claude Code in this repo. Read `docs/specs/product.md` (requirements) and `docs/rules/project-rules.md` (rules that apply to everyone) before working. Feature specs live in `docs/specs/features/`. Each feature needs an implementation plan in `docs/plans/` before code is written.
 
+## Current work
+
+Update this section when a feature starts or finishes, or when a task is committed.
+
+- **Completed features:** F1 (all 15 tasks committed).
+- **Feature in progress:** F2 (Trips). Plan approved; no tasks committed yet.
+- **Current task:** F2.T1, the `trips` migration. Not started. Needs human review (migration).
+
 ## Stack
 
 - **Frontend:** Angular (current stable), standalone components, TypeScript strict, Angular Router, Reactive Forms, Signals for state. No NgRx. Plain CSS/SCSS. Angular CDK for dialog focus trapping (WCAG 2.2 AA).
