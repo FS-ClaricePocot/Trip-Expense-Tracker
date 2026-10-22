@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Serilog;
@@ -33,6 +35,18 @@ builder.Services.AddSingleton<IPasswordHasher, PasswordHasherAdapter>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.TryAddSingleton(TimeProvider.System);
 
+// Session authentication reads the tet_session cookie (F1.R6). The fallback policy protects every endpoint,
+// so a new endpoint needs [AllowAnonymous] to be public (F1.R1). Challenge returns 401, never a redirect.
+builder.Services.AddAuthentication(SessionAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(SessionAuthenticationHandler.SchemeName, _ => { });
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder(SessionAuthenticationHandler.SchemeName)
+        .RequireAuthenticatedUser()
+        .Build();
+});
+builder.Services.AddControllers();
+
 var app = builder.Build();
 
 // Migrations run on startup only when Database:MigrateOnStartup is true (Development and tests).
@@ -50,8 +64,12 @@ if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 }
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
 
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+// Health is the only endpoint besides the four auth endpoints that is public.
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+app.MapControllers();
 
 app.Run();
 
