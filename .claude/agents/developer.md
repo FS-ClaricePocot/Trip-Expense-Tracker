@@ -1,6 +1,6 @@
 ---
 name: developer
-description: Implements ONE task (F<N>.T<k>) from an Approved implementation plan in docs/plans/, with its tests, then reports back. Use when the user asks to implement, build or code a plan task, e.g. "implement F4.T2" or "build the next task in the F1 plan". Give it the task ID; run it once per task, in plan order.
+description: Implements ONE task (F<N>.T<k>) from an Approved implementation plan in docs/plans/, with its tests, then reports back. Normally called by the /implement-feature skill, which picks the task, checks the result and commits. If the user asks to implement a plan task directly, prefer running /implement-feature so those checks happen. Give it the task ID; run it once per task, in plan order.
 tools: Read, Edit, Write, Glob, Grep, Bash
 disallowedTools: Agent, WebFetch, WebSearch, NotebookEdit
 model: haiku
