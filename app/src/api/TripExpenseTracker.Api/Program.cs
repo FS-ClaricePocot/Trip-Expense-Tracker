@@ -96,12 +96,26 @@ if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 // error middleware, so a 500 from an unhandled exception is recorded as 500.
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
+// Static files: the built Angular app. Deployment sets ASPNETCORE_WEBROOT to the Angular build output
+// (app/src/web/dist/trip-expense-tracker-web/browser). Served before auth because the app shell is public.
+// /index.html is the default document for "/".
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
 // Health is the only endpoint besides the four auth endpoints that is public.
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapControllers();
+
+// Any /api path that no endpoint matched is a 404 ProblemDetails. This explicit route has higher precedence
+// than the SPA fallback below, so an unknown /api path never receives index.html.
+app.Map("/api/{**rest}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Not found."))
+    .AllowAnonymous();
+
+// SPA fallback: any other non-file path returns index.html so the Angular router can handle it (F1.T14).
+// AllowAnonymous keeps the fallback policy from turning the app shell into a 401 for signed-out users.
+app.MapFallbackToFile("index.html").AllowAnonymous();
 
 app.Run();
 
