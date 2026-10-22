@@ -5,13 +5,16 @@ export const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
 export const REGISTRATION_FAILED_MESSAGE = "We couldn't create your account with these details.";
 export const INVALID_CREDENTIALS_MESSAGE = 'Email or password is incorrect.';
 export const LOGIN_REQUIRED_MESSAGE = 'Please log in to see your trips.';
+/** NEW COPY, not in docs/specs/features/F1-registration-and-login.md. Chosen by the product owner; review against the spec. */
+export const LOGIN_PASSWORD_REQUIRED_MESSAGE = 'Enter your password.';
+export const EMAIL_REQUIRED_MESSAGE = 'Enter your email address.';
 
 /** Reason passed in the /login query string when the guard redirects. */
 export const LOGIN_REQUIRED_REASON = 'login-required';
 
 /** Server field codes (ValidationProblemDetails) to field copy. */
 const FIELD_MESSAGES: Record<string, string> = {
-  email_required: 'Enter your email address.',
+  email_required: EMAIL_REQUIRED_MESSAGE,
   email_invalid: 'Enter an email address like name@example.com.',
   password_too_short: 'Your password must be at least 8 characters.',
   password_too_long: 'Your password can be at most 128 characters.',
