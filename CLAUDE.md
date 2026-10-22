@@ -8,7 +8,7 @@ Update this section when a feature starts or finishes, or when a task is committ
 
 - **Completed features:** F1 (all 15 tasks committed).
 - **Feature in progress:** F2 (Trips). Plan approved; F2.T1 committed.
-- **Current task:** F2.T6, the create form, duplicate warning and limit message. Not started. F2.T1 (`trips` migration, `3a14ad5`), F2.T2 (Core trip rules and `TripService`, `8a4b0a3`), F2.T3 (`TripDao`, `c86e697`), F2.T4 (`TripsController`, `8c74b4d`) and F2.T5 (trip list page, `8fb34cc`) are committed.
+- **Current task:** F2.T7, the trip page and delete dialog. Not started. F2.T1 (`trips` migration, `3a14ad5`), F2.T2 (Core trip rules and `TripService`, `8a4b0a3`), F2.T3 (`TripDao`, `c86e697`), F2.T4 (`TripsController`, `8c74b4d`), F2.T5 (trip list page, `8fb34cc`) and F2.T6 (create form, `d629c91`) are committed.
 
 ## Stack
 
