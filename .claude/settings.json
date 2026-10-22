@@ -8,6 +8,16 @@
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-log.mjs\"",
             "async": true,
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/context-warning.mjs\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/task-commit-reminder.mjs\"",
+            "timeout": 10
           }
         ]
       }
