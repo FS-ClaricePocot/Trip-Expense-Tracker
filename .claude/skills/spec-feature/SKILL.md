@@ -2,6 +2,7 @@
 name: spec-feature
 description: Write a detailed feature spec for one Trip Expense Tracker feature (F<N>) from docs/specs/product.md, asking the user about anything the product doc does not settle. Use when the user runs /spec-feature F<N> or asks to spec, detail, or flesh out a feature by its ID.
 argument-hint: F<N> (e.g. F2)
+model: haiku
 ---
 
 # Spec a feature
@@ -84,7 +85,7 @@ Keyboard, focus, labels, contrast, and reduced motion, as they apply to this fea
 Other features (F-IDs), build-order step, and external services.
 
 ## Test plan
-Unit tests, each mapped to the AC IDs.
+Unit tests only (project rules), each mapped to the AC IDs. For an AC that only a database or the full app can prove (ownership, constraints, cascades), say "code review" instead of a test.
 
 ## Open questions
 - [ ] … (anything unanswered; never filled in with a guess)

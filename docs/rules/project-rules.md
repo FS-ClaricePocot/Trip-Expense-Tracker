@@ -23,9 +23,12 @@ These rules apply to everyone working in this repo, people and AI agents alike, 
 
 ## Testing
 
-- Every code change includes tests.
+- Every code change includes unit tests. Unit tests are the only required kind: new plans and code do not add integration or end-to-end tests, to keep the build within budget.
+- Unit tests run without a database, network or browser. Replace those with fakes, and put the logic worth testing (rules, calculations, validation) where it can be tested that way.
+- Existing integration and end-to-end tests stay. Keep them passing, and never delete or disable them to save time.
 - Never delete, skip or loosen an existing test to make a run pass. Stop and ask instead.
 - Tests do not depend on the current time, on each other, or on a shared or production database.
+- Some rules can't be proven by unit tests: the ownership check in database queries, database constraints, and cascading deletes. A person checks these in code review instead.
 
 ## Logging and errors
 
