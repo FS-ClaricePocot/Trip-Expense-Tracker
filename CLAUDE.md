@@ -12,7 +12,7 @@ Guidance for Claude Code in this repo. Read `docs/specs/product.md` (requirement
 - **Auth:** server-side sessions stored in a `sessions` table. The cookie holds only a random session ID: HttpOnly, SameSite=Lax, Secure in production, no fixed expiry. Passwords are hashed with ASP.NET `PasswordHasher<T>` (PBKDF2) or BCrypt. The exact choice is made in the F1 plan.
 - **Logging:** `ILogger` with Serilog. Redact passwords, hashes, tokens and session IDs. No `Console` or `console.log` output.
 - **API:** JSON REST under `/api`. Errors use ProblemDetails. A trip the user does not own returns 404, the same as a missing trip (F1.R9).
-- **Testing:** back end uses xUnit, FluentAssertions, `WebApplicationFactory`, and Testcontainers (PostgreSQL) for integration tests. Front end uses Jest or Karma/Jasmine with Angular Testing Library. E2E uses Playwright. Tests must not depend on the current time (inject `TimeProvider`), on each other, or on a shared or production database.
+- **Testing: unit tests only for new work** (project rules). Back end: xUnit and FluentAssertions in `TripExpenseTracker.Tests`, with fakes for DAOs, `ICurrentUser` and the unit of work; controllers are unit-tested by constructing them directly. Front end: Karma/Jasmine with Angular Testing Library and mocked HTTP (headless Chrome; these count as unit tests). No new integration (`WebApplicationFactory`, Testcontainers) or end-to-end (Playwright) tests. SQL, ownership in queries, constraints, cascades and locks are checked in code review instead. F1's existing `TripExpenseTracker.IntegrationTests` and `app/e2e` suites stay and must keep passing. Tests must not depend on the current time (inject `TimeProvider`), on each other, or on a shared or production database.
 
 ## Repo layout
 
@@ -32,7 +32,7 @@ docs/       specs, plans, rules, design (existing)
 - `TripExpenseTracker.Api`: controllers, auth setup, DI, error-handling middleware.
 - `TripExpenseTracker.Core`: domain models, services, DAO interfaces, and **pure** split, balance and settlement logic (R3, R4, R6) with no I/O.
 - `TripExpenseTracker.Data`: Dapper DAOs, connection and transaction factory (`IDbConnectionFactory`, unit of work), DbUp migrations.
-- `TripExpenseTracker.Tests` (unit) and `TripExpenseTracker.IntegrationTests`.
+- `TripExpenseTracker.Tests` (unit; all new tests go here) and `TripExpenseTracker.IntegrationTests` (F1's existing tests only; no new ones).
 
 ### Front-end layout (inside `app/src/web/`)
 

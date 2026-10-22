@@ -27,7 +27,7 @@ Run `git status --short`. If there are uncommitted changes, **stop and ask** wha
 
 Never stash, reset, delete or overwrite changes yourself.
 
-Once per session, also check the tools the tasks need: `dotnet --version`, `node --version` and, for integration tests, `docker info --format "{{.ServerVersion}}"`. If something is missing, say so before running a task that needs it.
+Once per session, also check the tools the tasks need: `dotnet --version` and `node --version`. Docker is needed only for the local database and the end-of-feature run of F1's existing integration tests (step 6). If something is missing, say so before running a task that needs it.
 
 ## 3. Brief the developer agent
 
@@ -49,6 +49,7 @@ The agent's report is its own claim. Check it with cheap commands, and don't rea
   - `git diff -U0 | grep -nE "^\+.*\b(double|float)\b"` in money-related files → money must be `long` cents.
   - `git diff -U0 | grep -nE "Skip\s*=|\.skip\(|xit\(|xdescribe\("` → skipped tests.
   - `git diff --diff-filter=D --name-only` → no test file deleted.
+  - `git status --short -- app/src/api/TripExpenseTracker.IntegrationTests app/e2e` showing **new** files → unit tests only (project rules). Changes to existing files there are allowed only when the task says a requirement changed what they assert.
   - `git status --short` showing a `.env`, secret or key file → stop.
 - **Rerun the tests the report says it ran**, with the same narrow scope and quiet output, keeping only the last ~30 lines. A passing report with failing tests means the task isn't done.
 
@@ -58,7 +59,7 @@ If a check fails, treat the task as **Blocked** (step 5) with that finding as th
 
 **Done and checks pass:**
 - Show the user a short summary: the task, the changed files (from `--stat`), the test result, and the agent's notes.
-- If the task **needs human review** (migrations, auth, secrets or environment files, CI, changed tests), list the exact files and ask the user to read them before anything else. Don't offer to commit until they say they're happy with them.
+- If the task **needs human review** (migrations, auth, secrets or environment files, CI, changed tests, or SQL that only a review checks), list the exact files and ask the user to read them before anything else. For SQL tasks, show the task's review checklist so the user can tick it. Don't offer to commit until they say they're happy with them.
 - Ask with AskUserQuestion: **Commit** (recommended), **I'll review the diff first**, or **Send it back with changes**.
 - Commit only on an explicit yes. Stage the task's files by path (`git add <paths>`), never `git add -A` or `.`, and commit with the agent's suggested message in the form `F<N>.T<k>: <title>`. Add any commit attribution lines the session requires. Never push.
 
@@ -72,9 +73,10 @@ If a check fails, treat the task as **Blocked** (step 5) with that finding as th
 
 - After a commit, ask whether to continue with the next task. One task per confirmation: the user stays in control, and a run can stop cleanly at any point.
 - **When every task in the plan is committed,** run the feature's full checks once, quietly, keeping just the tails:
-  - `dotnet test app/src/api/TripExpenseTracker.sln --nologo -v q 2>&1 | tail -n 30`
-  - the Angular unit tests and the Playwright specs the plan names, if the web app exists.
-  Report the results, and that the feature is complete.
+  - `dotnet test app/src/api/TripExpenseTracker.sln --nologo -v q 2>&1 | tail -n 30` (unit tests plus F1's existing integration tests; Docker must be running)
+  - `npx ng test --watch=false --browsers=ChromeHeadless 2>&1 | tail -n 20` in `app/src/web`
+  - F1's existing Playwright suite in `app/e2e`, so the earlier features still work end to end. Don't add to it.
+  Then remind the user of the plan's manual checks (the review checklists and two-user ownership check). Report the results, and that the feature is complete.
 
 ## Never
 
