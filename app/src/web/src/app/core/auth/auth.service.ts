@@ -44,6 +44,21 @@ export class AuthService {
     this.statusSignal.set('authenticated');
   }
 
+  /**
+   * Ends the session on the server, then clears the signed-in state (F1.R5).
+   * The state is cleared even if the request fails, so the visitor is never
+   * left signed in on the client.
+   */
+  async logout(): Promise<void> {
+    try {
+      await firstValueFrom(this.http.post<void>('/api/auth/logout', null));
+    } catch {
+      // Ignored on purpose: the local state is cleared in finally either way.
+    } finally {
+      this.markAnonymous();
+    }
+  }
+
   private async loadMe(): Promise<void> {
     try {
       const user = await firstValueFrom(this.http.get<CurrentUser>('/api/auth/me'));

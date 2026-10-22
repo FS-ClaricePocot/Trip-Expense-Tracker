@@ -64,4 +64,26 @@ describe('AuthService', () => {
     expect(service.status()).toBe('anonymous');
     expect(service.user()).toBeNull();
   });
+
+  it('logout posts to /api/auth/logout and clears the signed-in user', async () => {
+    service.markAuthenticated({ id: 'u1', email: 'a@example.com' });
+    const done = service.logout();
+    const req = http.expectOne('/api/auth/logout');
+    expect(req.request.method).toBe('POST');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    await done;
+
+    expect(service.status()).toBe('anonymous');
+    expect(service.user()).toBeNull();
+  });
+
+  it('logout clears the signed-in user even when the request fails', async () => {
+    service.markAuthenticated({ id: 'u1', email: 'a@example.com' });
+    const done = service.logout();
+    http.expectOne('/api/auth/logout').flush({}, { status: 500, statusText: 'Server Error' });
+    await done;
+
+    expect(service.status()).toBe('anonymous');
+    expect(service.user()).toBeNull();
+  });
 });
