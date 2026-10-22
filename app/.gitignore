@@ -1,0 +1,9 @@
+# Local environment files (real values). Keep .env.example tracked.
+.env
+
+# Build output
+bin/
+obj/
+
+# Test output
+TestResults/
