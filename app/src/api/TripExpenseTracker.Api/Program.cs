@@ -9,6 +9,7 @@ using TripExpenseTracker.Api.Auth;
 using TripExpenseTracker.Api.Logging;
 using TripExpenseTracker.Api.Middleware;
 using TripExpenseTracker.Core.Auth;
+using TripExpenseTracker.Core.Trips;
 using TripExpenseTracker.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,6 +38,7 @@ builder.Services.AddSingleton<IDbConnectionFactory>(_ =>
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserDao, UserDao>();
 builder.Services.AddScoped<ISessionDao, SessionDao>();
+builder.Services.AddScoped<ITripDao, TripDao>();
 
 // Auth. AuthTransaction shares the scoped unit of work with the DAOs, so register and its session insert share one transaction (F1.R7).
 builder.Services.AddScoped<IAuthTransaction>(sp =>
