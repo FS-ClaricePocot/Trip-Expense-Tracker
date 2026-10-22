@@ -9,9 +9,19 @@
   } @else if (trips().length === 0) {
     <p>You have no trips yet. Create your first trip to start tracking shared expenses.</p>
   } @else {
-    <ul>
+    <ul class="trip-grid">
       @for (trip of trips(); track trip.id) {
-        <li><a [routerLink]="['/trips', trip.id]">{{ trip.name }}</a></li>
+        <li class="trip-card">
+          <h2 class="trip-card__title"><a class="trip-card__name" [routerLink]="['/trips', trip.id]">{{ trip.name }}</a></h2>
+          <svg class="trip-card__wave" viewBox="0 0 300 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+            <path d="M0 38 C 60 22, 120 52, 180 36 S 260 20, 300 30 V64 H0 Z" />
+          </svg>
+          <a class="trip-card__go" [routerLink]="['/trips', trip.id]" [attr.aria-label]="'Open ' + trip.name">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </li>
       }
     </ul>
   }
