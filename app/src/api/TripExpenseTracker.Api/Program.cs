@@ -1,6 +1,7 @@
 using Serilog;
 using Serilog.Events;
 using TripExpenseTracker.Api.Middleware;
+using TripExpenseTracker.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,20 @@ builder.Host.UseSerilog((context, configuration) => configuration
     .WriteTo.Console());
 
 var app = builder.Build();
+
+// Migrations run on startup only when Database:MigrateOnStartup is true (Development and tests).
+// It is false otherwise, so nothing migrates a production database by accident.
+if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+{
+    // Fail fast: a missing connection string must not silently skip the migrations.
+    var connectionString = app.Configuration.GetConnectionString("Default");
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException("Database:MigrateOnStartup is true but ConnectionStrings:Default is not set.");
+    }
+
+    MigrationRunner.Migrate(connectionString, Log.Logger);
+}
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
