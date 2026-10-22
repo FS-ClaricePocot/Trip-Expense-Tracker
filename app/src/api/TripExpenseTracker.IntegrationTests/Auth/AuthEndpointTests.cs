@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Npgsql;
 using TripExpenseTracker.IntegrationTests.Support;
 using Xunit;
+using static TripExpenseTracker.IntegrationTests.Support.AuthTestHelpers;
 
 namespace TripExpenseTracker.IntegrationTests.Auth;
 
@@ -18,7 +19,6 @@ public sealed record UserBody(Guid Id, string Email);
 public class AuthEndpointTests : IClassFixture<PostgresFixture>, IDisposable
 {
     private const string GoodPassword = "correct horse battery";
-    private const string CookieName = "tet_session";
 
     private readonly PostgresFixture _db;
     private readonly DatabaseWebApplicationFactory _factory;
@@ -217,26 +217,6 @@ public class AuthEndpointTests : IClassFixture<PostgresFixture>, IDisposable
 
     private HttpClient NewClient() =>
         _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-
-    private static string UniqueEmail() => $"anna-{Guid.NewGuid():N}@x.com";
-
-    private static string? SessionCookieHeader(HttpResponseMessage response) =>
-        response.Headers.TryGetValues("Set-Cookie", out var values)
-            ? values.FirstOrDefault(value => value.StartsWith(CookieName + "=", StringComparison.Ordinal))
-            : null;
-
-    private static string SessionIdFrom(HttpResponseMessage response)
-    {
-        var header = SessionCookieHeader(response) ?? throw new InvalidOperationException("No tet_session cookie was set.");
-        return header.Split(';')[0][(CookieName.Length + 1)..];
-    }
-
-    private static HttpRequestMessage WithSession(HttpMethod method, string path, string sessionId)
-    {
-        var request = new HttpRequestMessage(method, path);
-        request.Headers.Add("Cookie", $"{CookieName}={sessionId}");
-        return request;
-    }
 
     private static async Task<JsonElement> ReadProblemAsync(HttpResponseMessage response) =>
         ParseProblem(await response.Content.ReadAsStringAsync());

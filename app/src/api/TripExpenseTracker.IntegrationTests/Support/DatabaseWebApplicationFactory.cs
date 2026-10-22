@@ -25,6 +25,9 @@ public sealed class DatabaseWebApplicationFactory : WebApplicationFactory<Progra
 
     public FakeTimeProvider Time { get; } = new(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
 
+    /// <summary>Records served by the test-only ownership probe (F1.R9). Only this factory registers the probe.</summary>
+    public OwnershipProbeStore OwnershipProbe { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(_environmentName);
@@ -42,6 +45,10 @@ public sealed class DatabaseWebApplicationFactory : WebApplicationFactory<Progra
         {
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
+
+            // The probe is test-only: its controller lives in this test assembly, so this factory adds that assembly as an MVC part.
+            services.AddSingleton(OwnershipProbe);
+            services.AddControllers().AddApplicationPart(typeof(OwnershipProbeController).Assembly);
         });
     }
 }

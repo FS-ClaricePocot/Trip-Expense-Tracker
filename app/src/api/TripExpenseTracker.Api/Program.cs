@@ -46,6 +46,9 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 builder.Services.AddControllers();
+// ICurrentUser reads the authenticated principal for the request (F1.R9). Ownership checks use its UserId in DAO WHERE clauses.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 var app = builder.Build();
 
