@@ -8,6 +8,10 @@ export const LOGIN_REQUIRED_MESSAGE = 'Please log in to see your trips.';
 /** NEW COPY, not in docs/specs/features/F1-registration-and-login.md. Chosen by the product owner; review against the spec. */
 export const LOGIN_PASSWORD_REQUIRED_MESSAGE = 'Enter your password.';
 export const EMAIL_REQUIRED_MESSAGE = 'Enter your email address.';
+/** Copy from docs/specs/features/F2-trips.md, States & errors. */
+export const TRIP_NAME_REQUIRED_MESSAGE = 'Enter a trip name.';
+export const TRIP_NAME_TOO_LONG_MESSAGE = 'A trip name can be at most 100 characters.';
+export const TRIP_LIMIT_MESSAGE = 'You have reached the limit of 50 trips. Delete a trip to create a new one.';
 
 /** Reason passed in the /login query string when the guard redirects. */
 export const LOGIN_REQUIRED_REASON = 'login-required';
@@ -18,12 +22,15 @@ const FIELD_MESSAGES: Record<string, string> = {
   email_invalid: 'Enter an email address like name@example.com.',
   password_too_short: 'Your password must be at least 8 characters.',
   password_too_long: 'Your password can be at most 128 characters.',
+  name_required: TRIP_NAME_REQUIRED_MESSAGE,
+  name_too_long: TRIP_NAME_TOO_LONG_MESSAGE,
 };
 
 /** ProblemDetails `type` values to form-level (above the form) copy. */
 const PROBLEM_TYPE_MESSAGES: Record<string, string> = {
   'registration-failed': REGISTRATION_FAILED_MESSAGE,
   'invalid-credentials': INVALID_CREDENTIALS_MESSAGE,
+  'trip-limit-reached': TRIP_LIMIT_MESSAGE,
 };
 
 /** Reason codes from the router to copy. */
@@ -65,6 +72,12 @@ export function formErrorMessage(error: unknown): string {
     return PROBLEM_TYPE_MESSAGES[type];
   }
   return GENERIC_ERROR_MESSAGE;
+}
+
+/** The ProblemDetails `type` of a failed request, or null if there is none. */
+export function problemType(error: unknown): string | null {
+  const type = body(error)?.['type'];
+  return typeof type === 'string' ? type : null;
 }
 
 /** Copy for a reason passed on the /login query string, or null if unknown. */

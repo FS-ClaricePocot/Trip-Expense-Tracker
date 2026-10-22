@@ -1,0 +1,55 @@
+<form class="trip-create" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  @if (limited()) {
+    <p id="trip-message" class="trip-create__message" role="alert">
+      <svg class="trip-create__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M12 8v4M12 16h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <span>{{ limitMessage }}</span>
+    </p>
+  } @else if (duplicateName(); as name) {
+    <div id="trip-message" class="trip-create__message trip-create__message--warning" role="alert">
+      <p class="trip-create__warning-text">
+        <svg class="trip-create__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M12 3l10 18H2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+          <path d="M12 10v4M12 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <span>You already have a trip called '{{ name }}'. Create another one with the same name?</span>
+      </p>
+      <div class="trip-create__warning-actions">
+        <button type="button" class="secondary-button" [disabled]="submitting()" (click)="createAnyway()">Create anyway</button>
+        <button type="button" class="secondary-button" (click)="cancelDuplicate()">Cancel</button>
+      </div>
+    </div>
+  } @else if (formError(); as message) {
+    <p id="trip-message" class="trip-create__message" role="alert">
+      <svg class="trip-create__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M12 8v4M12 16h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <span>{{ message }}</span>
+    </p>
+  }
+
+  <div class="trip-create__field">
+    <label for="trip-name">New trip</label>
+    <input
+      #nameInput
+      id="trip-name"
+      type="text"
+      formControlName="name"
+      autocomplete="off"
+      [attr.aria-invalid]="fieldMessage() ? 'true' : null"
+      [attr.aria-describedby]="describedBy()"
+    />
+    <p id="trip-name-error" class="field-error" aria-live="polite">{{ fieldMessage() }}</p>
+  </div>
+
+  <button type="submit" class="primary-button" [disabled]="submitting() || limited()">
+    @if (submitting()) {
+      Creating trip…
+    } @else {
+      Create trip
+    }
+  </button>
+</form>

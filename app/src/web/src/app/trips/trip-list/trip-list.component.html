@@ -1,6 +1,7 @@
 <app-header />
 <main>
   <h1>Your trips</h1>
+  <app-trip-create-form [atLimit]="atLimit()" (created)="onCreated($event)" (tripLimitReached)="reload()" />
   @if (loading()) {
     <p role="status">Loading your trips…</p>
   } @else if (failed()) {

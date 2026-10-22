@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { render, screen, waitFor } from '@testing-library/angular';
+import { fireEvent, render, screen, waitFor } from '@testing-library/angular';
 import { TripListComponent } from './trip-list.component';
 
 const LOADING = 'Loading your trips…';
@@ -71,4 +71,70 @@ describe('TripListComponent', () => {
 
     expect(screen.getByRole('button', { name: 'Log out' })).toBeTruthy();
   });
+
+  it('puts a trip created with Create anyway at the top of the list (F2.AC1, F2.AC4)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([{ id: 'id-1', name: 'Paris 2026', createdAt: '2026-10-01T10:00:00Z' }]);
+    await waitFor(() => expect(screen.getByRole('list')).toBeTruthy());
+
+    fireEvent.input(screen.getByLabelText('New trip'), { target: { value: 'paris 2026' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Create trip' }).closest('form')!);
+    http.expectOne('/api/trips').flush(
+      { type: 'duplicate-trip-name', title: 'Duplicate', status: 409 },
+      { status: 409, statusText: 'Conflict' },
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Create anyway' }));
+    http.expectOne('/api/trips').flush({ id: 'id-2', name: 'paris 2026', createdAt: '2026-10-22T10:00:00Z' }, {
+      status: 201,
+      statusText: 'Created',
+    });
+
+    await settle();
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent?.trim())).toEqual(['paris 2026', 'Paris 2026']);
+  });
+
+  it('disables the create form and shows the limit text at 50 trips (F2.R4, F2.AC5)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush(fiftyTrips());
+
+    await waitFor(() =>
+      expect(screen.getByText('You have reached the limit of 50 trips. Delete a trip to create a new one.')).toBeTruthy(),
+    );
+    expect((screen.getByLabelText('New trip') as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Create trip' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('reloads the list when the server refuses a create at the limit (F2.R4)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([]);
+    await waitFor(() => expect(screen.getByText(EMPTY)).toBeTruthy());
+
+    fireEvent.input(screen.getByLabelText('New trip'), { target: { value: 'Lisbon' } });
+    fireEvent.submit(screen.getByRole('button', { name: 'Create trip' }).closest('form')!);
+    http.expectOne('/api/trips').flush(
+      { type: 'trip-limit-reached', title: 'Limit', status: 409 },
+      { status: 409, statusText: 'Conflict' },
+    );
+    // The reload is requested after the create promise settles, so let that happen first.
+    await new Promise((resolve) => setTimeout(resolve));
+    http.expectOne('/api/trips').flush(fiftyTrips());
+
+    await waitFor(() =>
+      expect(screen.getByText('You have reached the limit of 50 trips. Delete a trip to create a new one.')).toBeTruthy(),
+    );
+    expect(screen.getAllByRole('listitem').length).toBe(50);
+  });
 });
+
+/** Lets the promise chain after a flushed response finish before the DOM is checked. */
+function settle(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 50));
+}
+
+function fiftyTrips(): { id: string; name: string; createdAt: string }[] {
+  return Array.from({ length: 50 }, (_, index) => ({
+    id: `id-${index}`,
+    name: `Trip ${index}`,
+    createdAt: '2026-10-01T10:00:00Z',
+  }));
+}
