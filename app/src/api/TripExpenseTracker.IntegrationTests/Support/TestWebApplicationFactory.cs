@@ -19,6 +19,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             {
                 ["Database:MigrateOnStartup"] = "false",
                 ["ConnectionStrings:Default"] = string.Empty,
+                ["Auth:SessionCleanupEnabled"] = "false",
             });
         });
     }

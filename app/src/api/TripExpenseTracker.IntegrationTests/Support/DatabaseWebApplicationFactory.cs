@@ -41,6 +41,7 @@ public sealed class DatabaseWebApplicationFactory : WebApplicationFactory<Progra
             {
                 ["Database:MigrateOnStartup"] = "false",
                 ["ConnectionStrings:Default"] = _connectionString,
+                ["Auth:SessionCleanupEnabled"] = "false",
             });
         });
 

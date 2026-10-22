@@ -41,12 +41,25 @@ builder.Services.AddScoped<ISessionDao, SessionDao>();
 // Auth. AuthTransaction shares the scoped unit of work with the DAOs, so register and its session insert share one transaction (F1.R7).
 builder.Services.AddScoped<IAuthTransaction>(sp =>
     new AuthTransaction(sp.GetRequiredService<IUnitOfWork>(), Log.ForContext<AuthTransaction>()));
-builder.Services.AddOptions<AuthOptions>().Bind(builder.Configuration.GetSection("Auth"));
+// ValidateOnStart: a zero or negative duration (or one that does not bind) stops the app at startup, not on first use.
+builder.Services.AddOptions<AuthOptions>()
+    .Bind(builder.Configuration.GetSection("Auth"))
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<AuthOptions>, AuthOptionsValidation>();
 builder.Services.AddScoped(sp => sp.GetRequiredService<IOptions<AuthOptions>>().Value);
 // One hasher for the app, so AuthService's dummy-hash cache (keyed by hasher instance) is shared across requests.
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasherAdapter>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.TryAddSingleton(TimeProvider.System);
+
+// Expired-session cleanup (F1.R6). The singleton is always registered so a test can run one pass directly.
+// It runs as a hosted service only when Auth:SessionCleanupEnabled is true. The test factories set it to false,
+// so no timer runs in the test host unless a test starts it.
+builder.Services.AddSingleton<SessionCleanupService>();
+if (builder.Configuration.GetValue("Auth:SessionCleanupEnabled", true))
+{
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<SessionCleanupService>());
+}
 
 // Session authentication reads the tet_session cookie (F1.R6). The fallback policy protects every endpoint,
 // so a new endpoint needs [AllowAnonymous] to be public (F1.R1). Challenge returns 401, never a redirect.
