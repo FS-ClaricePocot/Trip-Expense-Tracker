@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Mvc.Testing;
 using TripExpenseTracker.IntegrationTests.Support;
 using Xunit;
@@ -62,8 +61,7 @@ public class OwnershipProbeTests : IClassFixture<PostgresFixture>, IDisposable
         Assert.Equal(HttpStatusCode.NotFound, otherOnOwned.StatusCode);
         Assert.Equal(otherOnMissing.StatusCode, otherOnOwned.StatusCode);
         Assert.Equal(otherOnMissing.Content.Headers.ContentType?.MediaType, otherOnOwned.Content.Headers.ContentType?.MediaType);
-        // traceId is a per-request correlation id, not record data, so it is left out of the comparison.
-        Assert.Equal(WithoutTraceId(otherOnMissingBody), WithoutTraceId(otherOnOwnedBody));
+        Assert.Equal(otherOnMissingBody, otherOnOwnedBody);
         Assert.DoesNotContain(OwnershipProbeStore.OwnedName, otherOnOwnedBody);
     }
 
@@ -86,13 +84,6 @@ public class OwnershipProbeTests : IClassFixture<PostgresFixture>, IDisposable
     // HandleCookies is off so the client never sends a cookie on its own. Each request carries exactly the session the test picks.
     private HttpClient NewClient() =>
         _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });
-
-    private static string WithoutTraceId(string body)
-    {
-        var node = JsonNode.Parse(body)!.AsObject();
-        node.Remove("traceId");
-        return node.ToJsonString();
-    }
 
     /// <summary>Registers a new user, which also logs them in. Returns the user id and the session id from the cookie.</summary>
     private static async Task<(Guid Id, string SessionId)> RegisterAsync(HttpClient client)

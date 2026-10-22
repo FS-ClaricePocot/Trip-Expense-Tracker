@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using TripExpenseTracker.Core.Auth;
 
@@ -44,6 +45,17 @@ public sealed class OwnershipProbeController : ControllerBase
     {
         var userId = _currentUser.UserId;
         var record = _store.Records.FirstOrDefault(r => r.Id == id && r.OwnerId == userId);
-        return record is null ? NotFound() : Ok(new { record.Id, record.Name });
+        return record is null ? NotFoundWithoutTraceId() : Ok(new { record.Id, record.Name });
     }
+
+    /// <summary>
+    /// A 404 with a fixed ProblemDetails body. NotFound() would let the framework add a per-request traceId,
+    /// which would make "not yours" and "missing" bodies differ. Built as an ObjectResult, the framework does not add one.
+    /// </summary>
+    private static ObjectResult NotFoundWithoutTraceId() =>
+        new(new ProblemDetails { Status = StatusCodes.Status404NotFound, Type = "about:blank", Title = "Not Found" })
+        {
+            StatusCode = StatusCodes.Status404NotFound,
+            ContentTypes = { "application/problem+json" },
+        };
 }
