@@ -7,8 +7,8 @@ Guidance for Claude Code in this repo. Read `docs/specs/product.md` (requirement
 Update this section when a feature starts or finishes, or when a task is committed.
 
 - **Completed features:** F1 (all 15 tasks committed).
-- **Feature in progress:** F2 (Trips). Plan approved; no tasks committed yet.
-- **Current task:** F2.T1, the `trips` migration. Not started. Needs human review (migration).
+- **Feature in progress:** F2 (Trips). Plan approved; F2.T1 committed.
+- **Current task:** F2.T2, Core trip rules, limit and `TripService`. Not started. F2.T1 (`trips` migration, `3a14ad5`) is committed.
 
 ## Stack
 
