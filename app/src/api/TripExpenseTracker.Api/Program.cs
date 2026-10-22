@@ -1,5 +1,8 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
+using TripExpenseTracker.Api.Auth;
 using TripExpenseTracker.Api.Middleware;
 using TripExpenseTracker.Core.Auth;
 using TripExpenseTracker.Data;
@@ -19,6 +22,16 @@ builder.Services.AddSingleton<IDbConnectionFactory>(_ =>
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserDao, UserDao>();
 builder.Services.AddScoped<ISessionDao, SessionDao>();
+
+// Auth. AuthTransaction shares the scoped unit of work with the DAOs, so register and its session insert share one transaction (F1.R7).
+builder.Services.AddScoped<IAuthTransaction>(sp =>
+    new AuthTransaction(sp.GetRequiredService<IUnitOfWork>(), Log.ForContext<AuthTransaction>()));
+builder.Services.AddOptions<AuthOptions>().Bind(builder.Configuration.GetSection("Auth"));
+builder.Services.AddScoped(sp => sp.GetRequiredService<IOptions<AuthOptions>>().Value);
+// One hasher for the app, so AuthService's dummy-hash cache (keyed by hasher instance) is shared across requests.
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasherAdapter>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.TryAddSingleton(TimeProvider.System);
 
 var app = builder.Build();
 
