@@ -39,6 +39,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserDao, UserDao>();
 builder.Services.AddScoped<ISessionDao, SessionDao>();
 builder.Services.AddScoped<ITripDao, TripDao>();
+builder.Services.AddScoped<TripService>();
 
 // Auth. AuthTransaction shares the scoped unit of work with the DAOs, so register and its session insert share one transaction (F1.R7).
 builder.Services.AddScoped<IAuthTransaction>(sp =>
