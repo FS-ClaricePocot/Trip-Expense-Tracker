@@ -20,11 +20,13 @@ public sealed class AuthController : ControllerBase
 
     private readonly AuthService _auth;
     private readonly IWebHostEnvironment _environment;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(AuthService auth, IWebHostEnvironment environment)
+    public AuthController(AuthService auth, IWebHostEnvironment environment, ILogger<AuthController> logger)
     {
         _auth = auth;
         _environment = environment;
+        _logger = logger;
     }
 
     // The cookie is Secure everywhere except Development (F1.R6).
@@ -56,7 +58,9 @@ public sealed class AuthController : ControllerBase
 
         if (result.User is not { } user)
         {
-            // Unknown email and wrong password give this same response (F1.R8).
+            // Unknown email and wrong password give this same response (F1.R8). The log has the same text for
+            // both causes and no email or password, so it does not show whether the email exists (F1.R11).
+            _logger.LogInformation("Login failed");
             return GenericProblem(StatusCodes.Status401Unauthorized, InvalidCredentialsType, "Invalid credentials.");
         }
 

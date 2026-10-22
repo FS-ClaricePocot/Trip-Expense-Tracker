@@ -28,6 +28,9 @@ public sealed class DatabaseWebApplicationFactory : WebApplicationFactory<Progra
     /// <summary>Records served by the test-only ownership probe (F1.R9). Only this factory registers the probe.</summary>
     public OwnershipProbeStore OwnershipProbe { get; } = new();
 
+    /// <summary>Receives every event the API logs, after redaction (F1.AC10).</summary>
+    public InMemoryLogSink Logs { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(_environmentName);
@@ -48,6 +51,9 @@ public sealed class DatabaseWebApplicationFactory : WebApplicationFactory<Progra
 
             // The probe is test-only: its controller lives in this test assembly, so this factory adds that assembly as an MVC part.
             services.AddSingleton(OwnershipProbe);
+
+            // The API reads extra Serilog sinks from DI (see Program.cs), so this sink sees the real pipeline's events.
+            services.AddSingleton<Serilog.Core.ILogEventSink>(Logs);
             services.AddControllers().AddApplicationPart(typeof(OwnershipProbeController).Assembly);
         });
     }

@@ -3,20 +3,33 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Serilog;
+using Serilog.Core;
 using Serilog.Events;
 using TripExpenseTracker.Api.Auth;
+using TripExpenseTracker.Api.Logging;
 using TripExpenseTracker.Api.Middleware;
 using TripExpenseTracker.Core.Auth;
 using TripExpenseTracker.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog is the only logging output. Console is a Serilog sink, not a Console.Write call.
-builder.Host.UseSerilog((context, configuration) => configuration
-    .MinimumLevel.Information()
-    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-    .Enrich.FromLogContext()
-    .WriteTo.Console());
+// Serilog is the only logging output. The console output is a Serilog sink, not a direct write.
+// SensitiveDataRedactor masks secret-named properties (F1.R11) before any sink sees them.
+// Extra sinks registered in DI are added too; tests use this to capture what the real pipeline logs.
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    configuration
+        .MinimumLevel.Information()
+        .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+        .Enrich.FromLogContext()
+        .Enrich.With(new SensitiveDataRedactor())
+        .WriteTo.Console();
+
+    foreach (var sink in services.GetServices<ILogEventSink>())
+    {
+        configuration.WriteTo.Sink(sink);
+    }
+});
 
 // Data access. The unit of work is scoped, so one request (or test scope) shares one connection and transaction.
 builder.Services.AddSingleton<IDbConnectionFactory>(_ =>
@@ -66,6 +79,9 @@ if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
     MigrationRunner.Migrate(connectionString, Log.Logger);
 }
 
+// Request log: method, path and status only (no query string, headers or bodies). It is placed before the
+// error middleware, so a 500 from an unhandled exception is recorded as 500.
+app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
