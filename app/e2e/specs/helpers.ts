@@ -13,7 +13,7 @@ export async function registerViaUi(page: Page, email: string, password = PASSWO
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByText("You're logged in. Your trips will appear here.")).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your trips' })).toBeVisible();
 }
 
 export async function logOutViaUi(page: Page): Promise<void> {

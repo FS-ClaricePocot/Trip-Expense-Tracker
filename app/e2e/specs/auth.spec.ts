@@ -3,7 +3,7 @@ import { PASSWORD, logOutViaUi, registerViaUi, uniqueEmail } from './helpers';
 
 // F1.AC1, AC2, AC3, AC5, AC6, AC13. Each test registers its own unique email and starts with a fresh browser context.
 
-test('register, see the placeholder, then log out and land on the log-in page', async ({ page }) => {
+test('register, see the trip list, then log out and land on the log-in page', async ({ page }) => {
   await registerViaUi(page, uniqueEmail());
   await logOutViaUi(page);
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();

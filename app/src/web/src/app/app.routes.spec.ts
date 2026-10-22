@@ -6,6 +6,7 @@ import { waitFor } from '@testing-library/angular';
 import { AuthService } from './core/auth/auth.service';
 import { apiInterceptor } from './core/http/api.interceptor';
 import { routes } from './app.routes';
+import { TripListComponent } from './trips/trip-list/trip-list.component';
 
 const LOGIN_REDIRECT = '/login?reason=login-required';
 
@@ -47,6 +48,13 @@ describe('app routes: /trips is guarded (F1.R15, F1.AC1, F1.AC13)', () => {
     await navigation;
 
     expect(router.url).toBe(LOGIN_REDIRECT);
+  });
+
+  it('after login, /trips resolves to the trip list, not the placeholder (F2.R10, F2.AC14)', async () => {
+    auth.markAuthenticated({ id: 'u1', email: 'a@example.com' });
+    await router.navigateByUrl('/trips');
+
+    expect(router.routerState.snapshot.root.firstChild?.component).toBe(TripListComponent);
   });
 
   it('sends /trips to /login after logout, without a new /me request', async () => {

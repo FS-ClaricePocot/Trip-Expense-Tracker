@@ -1,0 +1,17 @@
+<app-header />
+<main>
+  <h1>Your trips</h1>
+  @if (loading()) {
+    <p role="status">Loading your trips…</p>
+  } @else if (failed()) {
+    <p role="alert">Something went wrong. Please try again.</p>
+  } @else if (trips().length === 0) {
+    <p>You have no trips yet. Create your first trip to start tracking shared expenses.</p>
+  } @else {
+    <ul>
+      @for (trip of trips(); track trip.id) {
+        <li><a [routerLink]="['/trips', trip.id]">{{ trip.name }}</a></li>
+      }
+    </ul>
+  }
+</main>
