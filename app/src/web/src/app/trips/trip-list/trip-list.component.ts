@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { HeaderComponent } from '../../core/header/header.component';
 import { TripCreateFormComponent } from '../trip-create-form/trip-create-form.component';
-import { TRIP_LIMIT, TripSummary, TripsService } from '../trips.service';
+import { TRIP_DELETED_STATE, TRIP_LIMIT, TripSummary, TripsService } from '../trips.service';
 
 /**
  * "Your trips" page (F2.R5, F2.R10, F2.R11). Replaces the F1 placeholder (F1.R16).
@@ -17,7 +17,10 @@ import { TRIP_LIMIT, TripSummary, TripsService } from '../trips.service';
 })
 export class TripListComponent implements OnInit {
   private readonly tripsService = inject(TripsService);
+  private readonly router = inject(Router);
 
+  /** F2.R7: true when the trip page sent the user here after a delete. Read from navigation state, not stored. */
+  protected readonly tripDeleted = this.router.getCurrentNavigation()?.extras.state?.[TRIP_DELETED_STATE] === true;
   protected readonly loading = signal(true);
   protected readonly failed = signal(false);
   protected readonly trips = signal<TripSummary[]>([]);

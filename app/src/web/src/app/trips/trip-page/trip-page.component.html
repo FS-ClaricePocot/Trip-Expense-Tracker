@@ -1,0 +1,19 @@
+<app-header />
+<main>
+  @if (trip(); as current) {
+    <h1 class="trip-page__title">{{ current.name }}</h1>
+    <button
+      type="button"
+      class="trip-page__delete"
+      [attr.aria-label]="'Delete trip ' + current.name"
+      (click)="openDelete()"
+    >
+      Delete
+    </button>
+  } @else if (notFound()) {
+    <p role="alert">{{ notFoundMessage }}</p>
+    <p><a routerLink="/trips">Your trips</a></p>
+  } @else if (failed()) {
+    <p role="alert">{{ genericMessage }}</p>
+  }
+</main>

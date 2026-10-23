@@ -12,6 +12,8 @@ export const EMAIL_REQUIRED_MESSAGE = 'Enter your email address.';
 export const TRIP_NAME_REQUIRED_MESSAGE = 'Enter a trip name.';
 export const TRIP_NAME_TOO_LONG_MESSAGE = 'A trip name can be at most 100 characters.';
 export const TRIP_LIMIT_MESSAGE = 'You have reached the limit of 50 trips. Delete a trip to create a new one.';
+/** Copy from docs/specs/features/F2-trips.md, States & errors (trip not found, F2.R9). */
+export const TRIP_NOT_FOUND_MESSAGE = 'This trip no longer exists.';
 
 /** Reason passed in the /login query string when the guard redirects. */
 export const LOGIN_REQUIRED_REASON = 'login-required';

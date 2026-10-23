@@ -18,6 +18,16 @@ export interface CreateTripRequest {
   confirmDuplicate?: boolean;
 }
 
+/** Response of GET /api/trips/{id} (F2.R6, F2.R7). The counts are 0 until F3 to F6. */
+export interface TripDetail extends TripSummary {
+  peopleCount: number;
+  expenseCount: number;
+  paymentCount: number;
+}
+
+/** Router navigation state key that tells the trip list to show "Trip deleted." (F2.R7). */
+export const TRIP_DELETED_STATE = 'tripDeleted';
+
 @Injectable({ providedIn: 'root' })
 export class TripsService {
   private readonly http = inject(HttpClient);
@@ -28,5 +38,13 @@ export class TripsService {
 
   create(request: CreateTripRequest): Promise<TripSummary> {
     return firstValueFrom(this.http.post<TripSummary>('/api/trips', request));
+  }
+
+  get(id: string): Promise<TripDetail> {
+    return firstValueFrom(this.http.get<TripDetail>(`/api/trips/${encodeURIComponent(id)}`));
+  }
+
+  delete(id: string): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`/api/trips/${encodeURIComponent(id)}`));
   }
 }
