@@ -9,11 +9,13 @@ namespace TripExpenseTracker.Data;
 /// </summary>
 public sealed class TripDao : ITripDao
 {
+    // The people count is a correlated count in the same owner-filtered statement, so the list runs one query, not one per card (F3.R13, F3.R14).
     private const string ListSql = """
-        SELECT id AS "Id", owner_user_id AS "OwnerUserId", name AS "Name", created_at AS "CreatedAt"
-        FROM trips
-        WHERE owner_user_id = @Owner
-        ORDER BY created_at DESC, id DESC
+        SELECT t.id AS "Id", t.owner_user_id AS "OwnerUserId", t.name AS "Name", t.created_at AS "CreatedAt",
+               (SELECT COUNT(*)::int FROM people p WHERE p.trip_id = t.id) AS "PeopleCount"
+        FROM trips t
+        WHERE t.owner_user_id = @Owner
+        ORDER BY t.created_at DESC, t.id DESC
         """;
 
     // The people count sits in the same owner-filtered statement, so a trip the owner does not own returns no row (F2.R9, F3.R11).
@@ -69,7 +71,7 @@ public sealed class TripDao : ITripDao
             new { Owner = owner },
             transaction: _unitOfWork.Transaction,
             cancellationToken: cancellationToken);
-        var rows = await connection.QueryAsync<TripRow>(command);
+        var rows = await connection.QueryAsync<TripDetailRow>(command);
         return rows.Select(row => row.ToTrip()).ToList();
     }
 
@@ -148,15 +150,9 @@ public sealed class TripDao : ITripDao
     }
 
     /// <summary>
-    /// Reads a row with the types Npgsql returns. timestamptz comes back as DateTime (UTC), not DateTimeOffset,
-    /// so the row is converted to the domain type here (same as UserDao).
+    /// A trip row plus its people count (F3.R11, F3.R13). Used by the list and the detail reads. timestamptz comes back
+    /// as DateTime (UTC), not DateTimeOffset, so the row is converted to the domain type here (same as UserDao).
     /// </summary>
-    internal sealed record TripRow(Guid Id, Guid OwnerUserId, string Name, DateTime CreatedAt)
-    {
-        public Trip ToTrip() => new(Id, OwnerUserId, Name, new DateTimeOffset(DateTime.SpecifyKind(CreatedAt, DateTimeKind.Utc)));
-    }
-
-    /// <summary>The detail read: a trip row plus its people count (F3.R11).</summary>
     internal sealed record TripDetailRow(Guid Id, Guid OwnerUserId, string Name, DateTime CreatedAt, int PeopleCount)
     {
         public Trip ToTrip() => new(Id, OwnerUserId, Name, new DateTimeOffset(DateTime.SpecifyKind(CreatedAt, DateTimeKind.Utc)), PeopleCount);

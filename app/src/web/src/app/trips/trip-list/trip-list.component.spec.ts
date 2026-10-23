@@ -45,7 +45,7 @@ describe('TripListComponent', () => {
     ]);
 
     await waitFor(() => expect(screen.getByRole('list')).toBeTruthy());
-    const items = screen.getAllByRole('listitem').map((item) => item.textContent?.trim());
+    const items = screen.getAllByRole('listitem').map((item) => item.querySelector('.trip-card__name')?.textContent?.trim());
     expect(items).toEqual(['Lisbon', 'Porto', 'Paris']);
   });
 
@@ -55,6 +55,27 @@ describe('TripListComponent', () => {
 
     await waitFor(() => expect(screen.getByRole('link', { name: 'Lisbon' })).toBeTruthy());
     expect(screen.getByRole('link', { name: 'Lisbon' }).getAttribute('href')).toBe('/trips/abc-123');
+  });
+
+  it('shows "3 people" on a card with three people (F3.R13, F3.AC15)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([{ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 3 }]);
+
+    await waitFor(() => expect(screen.getByText('3 people')).toBeTruthy());
+  });
+
+  it('shows "1 person" on a card with one person (F3.R13, F3.AC16)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([{ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 1 }]);
+
+    await waitFor(() => expect(screen.getByText('1 person')).toBeTruthy());
+  });
+
+  it('shows "No people yet" on a card with no people (F3.R13, F3.AC16)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([{ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 0 }]);
+
+    await waitFor(() => expect(screen.getByText('No people yet')).toBeTruthy());
   });
 
   it('shows the generic error when the list request fails (F2 States)', async () => {
@@ -90,7 +111,9 @@ describe('TripListComponent', () => {
     });
 
     await settle();
-    expect(screen.getAllByRole('listitem').map((item) => item.textContent?.trim())).toEqual(['paris 2026', 'Paris 2026']);
+    expect(
+      screen.getAllByRole('listitem').map((item) => item.querySelector('.trip-card__name')?.textContent?.trim()),
+    ).toEqual(['paris 2026', 'Paris 2026']);
   });
 
   it('disables the create form and shows the limit text at 50 trips (F2.R4, F2.AC5)', async () => {

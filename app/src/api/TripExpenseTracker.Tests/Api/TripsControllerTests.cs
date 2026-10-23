@@ -130,6 +130,18 @@ public class TripsControllerTests
     }
 
     [Fact]
+    public async Task List_item_carries_the_people_count_from_the_service_result()
+    {
+        _dao.Trips.Add(new Trip(Guid.NewGuid(), Anna, "Paris 2026", Start, 3));
+        _dao.Seed(Anna, "Rome 2027");
+
+        var result = await _sut.List(CancellationToken.None);
+
+        var items = ((IEnumerable<TripResponse>)((OkObjectResult)result).Value!).ToList();
+        items.Select(item => item.PeopleCount).Should().Equal(3, 0);
+    }
+
+    [Fact]
     public async Task Get_returns_the_name_and_three_zero_counts()
     {
         var trip = _dao.Seed(Anna, "Paris 2026");

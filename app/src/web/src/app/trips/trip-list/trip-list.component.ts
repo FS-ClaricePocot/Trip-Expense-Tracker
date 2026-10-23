@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { HeaderComponent } from '../../core/header/header.component';
 import { TripCreateFormComponent } from '../trip-create-form/trip-create-form.component';
 import { TRIP_DELETED_STATE, TRIP_LIMIT, TripSummary, TripsService } from '../trips.service';
+import { tripPeopleText } from './trip-count-text';
 
 /**
  * "Your trips" page (F2.R5, F2.R10, F2.R11). Replaces the F1 placeholder (F1.R16).
@@ -25,6 +26,7 @@ export class TripListComponent implements OnInit {
   protected readonly failed = signal(false);
   protected readonly trips = signal<TripSummary[]>([]);
   protected readonly atLimit = computed(() => this.trips().length >= TRIP_LIMIT);
+  protected readonly tripPeopleText = tripPeopleText;
 
   async ngOnInit(): Promise<void> {
     try {

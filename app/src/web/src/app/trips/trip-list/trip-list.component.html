@@ -16,6 +16,7 @@
       @for (trip of trips(); track trip.id) {
         <li class="trip-card">
           <h2 class="trip-card__title"><a class="trip-card__name" [routerLink]="['/trips', trip.id]">{{ trip.name }}</a></h2>
+          <p class="trip-card__people">{{ tripPeopleText(trip.peopleCount) }}</p>
           <svg class="trip-card__wave" viewBox="0 0 300 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">
             <path d="M0 38 C 60 22, 120 52, 180 36 S 260 20, 300 30 V64 H0 Z" />
           </svg>
