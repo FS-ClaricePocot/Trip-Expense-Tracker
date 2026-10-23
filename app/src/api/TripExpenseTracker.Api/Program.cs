@@ -42,6 +42,9 @@ builder.Services.AddScoped<ISessionDao, SessionDao>();
 builder.Services.AddScoped<ITripDao, TripDao>();
 builder.Services.AddScoped<IPersonDao, PersonDao>();
 builder.Services.AddScoped<TripService>();
+// No IPersonUsageSource is registered yet, so IEnumerable<IPersonUsageSource> is empty and nobody is in use (F3.R7).
+// F4 and F6 each register a source here.
+builder.Services.AddScoped<PeopleService>();
 
 // Auth. AuthTransaction shares the scoped unit of work with the DAOs, so register and its session insert share one transaction (F1.R7).
 builder.Services.AddScoped<IAuthTransaction>(sp =>
