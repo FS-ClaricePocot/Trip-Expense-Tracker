@@ -1,0 +1,41 @@
+.people-panel {
+  margin-top: 1.5rem;
+
+  &__title {
+    margin: 0 0 0.25rem;
+  }
+
+  &__helper,
+  &__count {
+    margin: 0.25rem 0;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+  }
+
+  &__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: #e5e7eb;
+    font-weight: 600;
+  }
+
+  &__tag {
+    margin-left: auto;
+    font-size: 0.875rem;
+  }
+}

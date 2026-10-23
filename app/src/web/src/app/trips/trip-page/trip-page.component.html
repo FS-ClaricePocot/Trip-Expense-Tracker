@@ -10,6 +10,7 @@
     >
       Delete
     </button>
+    <app-people-panel [tripId]="current.id" (tripGone)="onTripGone()" />
   } @else if (notFound()) {
     <p role="alert">{{ notFoundMessage }}</p>
     <p><a routerLink="/trips">Your trips</a></p>

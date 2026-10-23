@@ -4,6 +4,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { GENERIC_ERROR_MESSAGE, TRIP_NOT_FOUND_MESSAGE } from '../../core/errors/problem-mapper';
 import { HeaderComponent } from '../../core/header/header.component';
+import { PeoplePanelComponent } from '../../people/people-panel/people-panel.component';
 import { DeleteTripDialogComponent, DeleteTripDialogData } from '../delete-trip-dialog/delete-trip-dialog.component';
 import { TRIP_DELETED_STATE, TripDetail, TripsService } from '../trips.service';
 
@@ -14,7 +15,7 @@ import { TRIP_DELETED_STATE, TripDetail, TripsService } from '../trips.service';
  */
 @Component({
   selector: 'app-trip-page',
-  imports: [HeaderComponent, RouterLink],
+  imports: [HeaderComponent, RouterLink, PeoplePanelComponent],
   templateUrl: './trip-page.component.html',
   styleUrl: './trip-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,6 +45,12 @@ export class TripPageComponent implements OnInit {
         this.failed.set(true);
       }
     }
+  }
+
+  /** F3.R10: the people request got a 404, so the trip is gone. Shows the F2 not-found message once. */
+  protected onTripGone(): void {
+    this.trip.set(null);
+    this.notFound.set(true);
   }
 
   /** F2.R7: opens the confirmation. Focus returns to the Delete button when it closes. */

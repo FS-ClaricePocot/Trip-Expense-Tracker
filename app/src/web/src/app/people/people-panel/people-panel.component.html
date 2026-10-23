@@ -1,0 +1,28 @@
+<section class="people-panel" aria-labelledby="people-heading">
+  <h2 id="people-heading" class="people-panel__title">People</h2>
+  <p class="people-panel__helper">Names are unique on a trip. People in an expense or payment can't be removed.</p>
+  @if (loading()) {
+    <p>Loading people…</p>
+  } @else if (failed()) {
+    <p role="alert">{{ genericMessage }}</p>
+  } @else if (people(); as list) {
+    <p class="people-panel__count">{{ countText() }}</p>
+    @if (list.length === 0) {
+      <p class="people-panel__empty">No one is on this trip yet. Add the people who will share its expenses.</p>
+    } @else {
+      <ul class="people-panel__list">
+        @for (person of list; track person.id) {
+          <li class="people-panel__item">
+            <span class="people-panel__avatar" aria-hidden="true">{{ initial(person.name) }}</span>
+            <span class="people-panel__name">{{ person.name }}</span>
+            @if (person.inExpense) {
+              <span class="people-panel__tag">In expenses</span>
+            } @else if (person.inPayment) {
+              <span class="people-panel__tag">In payments</span>
+            }
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>

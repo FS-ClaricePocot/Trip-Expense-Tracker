@@ -32,6 +32,8 @@ async function openTripPage(): Promise<{ harness: RouterTestingHarness; http: Ht
 async function settle(harness: RouterTestingHarness): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 20));
   harness.detectChanges();
+  // F3.T6 stub: the People panel asks for the trip's people once the trip has loaded. Answer it with an empty list.
+  TestBed.inject(HttpTestingController).match('/api/trips/trip-1/people').forEach((request) => request.flush([]));
 }
 
 /** Focuses the Delete button, as a click would, then opens the dialog and returns it. */
@@ -182,5 +184,19 @@ describe('TripPageComponent', () => {
 
     await waitFor(() => expect(within(dialog).getByRole('alert').textContent?.trim()).toBe(GENERIC_ERROR));
     expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('shows the not-found message once when the people request returns 404 (F3.R10)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    harness.detectChanges();
+    http.expectOne('/api/trips/trip-1/people').flush(null, { status: 404, statusText: 'Not Found' });
+    await settle(harness);
+
+    expect(screen.getAllByText(NOT_FOUND).length).toBe(1);
+    expect(screen.getAllByRole('alert').length).toBe(1);
+    expect(screen.queryByRole('heading', { name: 'Paris 2026' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'People' })).toBeNull();
   });
 });
