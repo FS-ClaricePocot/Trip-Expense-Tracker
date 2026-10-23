@@ -38,4 +38,23 @@
     margin-left: auto;
     font-size: 0.875rem;
   }
+
+  &__add {
+    margin-top: 1rem;
+  }
+
+  &__add-row {
+    display: flex;
+    gap: 0.5rem;
+
+    input {
+      flex: 1;
+      min-height: 24px;
+    }
+  }
+
+  &__add-button {
+    min-width: 24px;
+    min-height: 24px;
+  }
 }

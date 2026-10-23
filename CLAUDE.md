@@ -7,7 +7,7 @@ Guidance for Claude Code in this repo. Read `docs/specs/product.md` (requirement
 Update this section when a feature starts or finishes, or when a task is committed.
 
 - **Completed features:** F1 (all 15 tasks committed). F2 (all 7 tasks committed; the Playwright end-to-end run and the plan's manual checks are still pending).
-- **Feature in progress:** none.
+- **Feature in progress:** F3 (People). F3.T1 (people migration, `22ae339`), F3.T2 (people rules and `PeopleService`, `3dffb2f`), F3.T3 (`PersonDao`, `e618b63`), F3.T4 (`PeopleController`, `87ae6c0`), F3.T5 (real people count in trip detail, `b8ec505`), F3.T6 (read-only People panel, `c470f42`) and F3.T7 (add a person, this commit) are committed.
 - **Current task:** none. F2.T1 (`trips` migration, `3a14ad5`), F2.T2 (Core trip rules and `TripService`, `8a4b0a3`), F2.T3 (`TripDao`, `c86e697`), F2.T4 (`TripsController`, `8c74b4d`), F2.T5 (trip list page, `8fb34cc`), F2.T6 (create form, `d629c91`) and F2.T7 (trip page and delete dialog, `4a94b7a`) are committed.
 
 ## Stack

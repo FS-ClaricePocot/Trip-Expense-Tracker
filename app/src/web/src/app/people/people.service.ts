@@ -21,4 +21,9 @@ export class PeopleService {
   list(tripId: string): Promise<Person[]> {
     return firstValueFrom(this.http.get<Person[]>(`/api/trips/${encodeURIComponent(tripId)}/people`));
   }
+
+  /** POST /api/trips/{tripId}/people (F3.R1). The server returns the added person (201). */
+  add(tripId: string, name: string): Promise<Person> {
+    return firstValueFrom(this.http.post<Person>(`/api/trips/${encodeURIComponent(tripId)}/people`, { name }));
+  }
 }

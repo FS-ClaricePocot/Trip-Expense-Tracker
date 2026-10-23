@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { screen, within } from '@testing-library/angular';
+import { fireEvent, screen, within } from '@testing-library/angular';
 import { Person } from '../people.service';
 import { PeoplePanelComponent } from './people-panel.component';
 
@@ -31,6 +31,29 @@ function render(): void {
 /** Lets the pending response resolve, then re-checks the view. */
 async function settle(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 20));
+  fixture.detectChanges();
+}
+
+/** Renders the panel and answers its list request with the given people. */
+async function renderWith(people: Person[]): Promise<void> {
+  render();
+  http.expectOne('/api/trips/trip-1/people').flush(people);
+  await settle();
+}
+
+function nameInput(): HTMLInputElement {
+  return screen.getByLabelText('Add a person') as HTMLInputElement;
+}
+
+function typeName(value: string): void {
+  const input = nameInput();
+  input.value = value;
+  input.dispatchEvent(new Event('input'));
+  fixture.detectChanges();
+}
+
+function pressAdd(): void {
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
   fixture.detectChanges();
 }
 
@@ -134,12 +157,139 @@ describe('PeoplePanelComponent', () => {
     expect(screen.getByRole('alert').textContent?.trim()).toBe(GENERIC_ERROR);
   });
 
-  it('has no control to rename a person (F3.R8, F3.AC11)', async () => {
-    render();
-    http.expectOne('/api/trips/trip-1/people').flush([person('p1', 'Sam')]);
+  it('has no control to rename a person; the only text field is the add field (F3.R8, F3.AC11)', async () => {
+    await renderWith([person('p1', 'Sam')]);
+
+    const textboxes = screen.getAllByRole('textbox');
+    expect(textboxes.length).toBe(1);
+    expect(textboxes[0].id).toBe('person-name');
+    expect(screen.queryByRole('button', { name: /edit|rename/i })).toBeNull();
+  });
+
+  it('shows the add field with its label, example placeholder and Add button (F3.R1, F3.AC12)', async () => {
+    await renderWith([]);
+
+    expect(nameInput().placeholder).toBe('Morgan');
+    expect(screen.getByText(EMPTY)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add' })).toBeTruthy();
+  });
+
+  it('shows the empty and length errors on the field and sends no request (F3.R2, F3.AC3, F3.AC5)', async () => {
+    await renderWith([]);
+
+    typeName('   ');
+    pressAdd();
+    expect(screen.getByText('Enter a name.')).toBeTruthy();
+    expect(nameInput().getAttribute('aria-invalid')).toBe('true');
+    expect(nameInput().getAttribute('aria-describedby')).toContain('person-name-error');
+
+    typeName('a'.repeat(101));
+    pressAdd();
+    expect(screen.getByText('A name can be at most 100 characters.')).toBeTruthy();
+    http.expectNone({ method: 'POST', url: '/api/trips/trip-1/people' });
+  });
+
+  it('sends 100 characters and adds them (F3.AC3)', async () => {
+    await renderWith([]);
+
+    typeName('a'.repeat(100));
+    pressAdd();
+    const req = http.expectOne({ method: 'POST', url: '/api/trips/trip-1/people' });
+    expect(req.request.body).toEqual({ name: 'a'.repeat(100) });
+    req.flush(person('p1', 'a'.repeat(100)), { status: 201, statusText: 'Created' });
     await settle();
 
-    expect(screen.queryByRole('textbox')).toBeNull();
-    expect(screen.queryByRole('button', { name: /edit|rename/i })).toBeNull();
+    expect(screen.getByText('1 person')).toBeTruthy();
+  });
+
+  it('trims the name before sending (F3.AC4)', async () => {
+    await renderWith([]);
+
+    typeName('  Jo  ');
+    pressAdd();
+    const req = http.expectOne({ method: 'POST', url: '/api/trips/trip-1/people' });
+    expect(req.request.body).toEqual({ name: 'Jo' });
+    req.flush(person('p1', 'Jo'), { status: 201, statusText: 'Created' });
+    await settle();
+  });
+
+  it('shows the duplicate message with the typed trimmed name and adds nothing (F3.R3, F3.AC2)', async () => {
+    await renderWith([person('p1', 'Sam')]);
+
+    typeName(' sam ');
+    pressAdd();
+    const req = http.expectOne({ method: 'POST', url: '/api/trips/trip-1/people' });
+    req.flush({ type: 'duplicate-person-name', status: 409 }, { status: 409, statusText: 'Conflict' });
+    await settle();
+
+    expect(screen.getByText('sam is already on this trip.')).toBeTruthy();
+    expect(nameInput().getAttribute('aria-describedby')).toContain('person-name-error');
+    expect(screen.getAllByRole('listitem').length).toBe(1);
+  });
+
+  it('disables the button and shows "Adding…" while the request is sent (F3.R1)', async () => {
+    await renderWith([]);
+
+    typeName('Alex');
+    pressAdd();
+    const busy = screen.getByRole('button', { name: 'Adding…' }) as HTMLButtonElement;
+    expect(busy.disabled).toBe(true);
+
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/people' }).flush(person('p1', 'Alex'), { status: 201, statusText: 'Created' });
+    await settle();
+
+    expect(screen.getByRole('button', { name: 'Add' })).toBeTruthy();
+  });
+
+  it('adds the person at the end of the list and clears the field (F3.AC1)', async () => {
+    await renderWith([person('p1', 'Sam')]);
+
+    typeName('Alex');
+    pressAdd();
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/people' }).flush(person('p2', 'Alex'), { status: 201, statusText: 'Created' });
+    await settle();
+
+    const names = screen.getAllByRole('listitem').map((item) => item.querySelector('.people-panel__name')?.textContent?.trim());
+    expect(names).toEqual(['Sam', 'Alex']);
+    expect(nameInput().value).toBe('');
+    expect(screen.getByText('2 people')).toBeTruthy();
+    expect(screen.queryByText('Enter a name.')).toBeNull();
+  });
+
+  it('emits tripGone on a 404 when adding (F3.R10)', async () => {
+    await renderWith([]);
+    const emitted: void[] = [];
+    fixture.componentInstance.tripGone.subscribe(() => emitted.push(undefined));
+
+    typeName('Alex');
+    pressAdd();
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/people' }).flush(null, { status: 404, statusText: 'Not Found' });
+    await settle();
+
+    expect(emitted.length).toBe(1);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('shows the generic error above the form for a server error (F3 States)', async () => {
+    await renderWith([]);
+
+    typeName('Alex');
+    pressAdd();
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/people' }).flush(null, { status: 500, statusText: 'Server Error' });
+    await settle();
+
+    expect(screen.getByRole('alert').textContent?.trim()).toBe(GENERIC_ERROR);
+  });
+
+  it('submits from the keyboard alone (accessibility)', async () => {
+    await renderWith([]);
+
+    expect(screen.getByRole('button', { name: 'Add' }).getAttribute('type')).toBe('submit');
+    typeName('Alex');
+    fireEvent.submit(nameInput().closest('form') as HTMLFormElement);
+    fixture.detectChanges();
+
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/people' }).flush(person('p1', 'Alex'), { status: 201, statusText: 'Created' });
+    await settle();
   });
 });

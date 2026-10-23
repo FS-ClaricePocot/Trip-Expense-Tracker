@@ -14,6 +14,36 @@ export const TRIP_NAME_TOO_LONG_MESSAGE = 'A trip name can be at most 100 charac
 export const TRIP_LIMIT_MESSAGE = 'You have reached the limit of 50 trips. Delete a trip to create a new one.';
 /** Copy from docs/specs/features/F2-trips.md, States & errors (trip not found, F2.R9). */
 export const TRIP_NOT_FOUND_MESSAGE = 'This trip no longer exists.';
+/** Copy from docs/specs/features/F3-people.md, States & errors (add a person). */
+export const PERSON_NAME_REQUIRED_MESSAGE = 'Enter a name.';
+export const PERSON_NAME_TOO_LONG_MESSAGE = 'A name can be at most 100 characters.';
+
+const PERSON_NAME_MESSAGES: Record<string, string> = {
+  name_required: PERSON_NAME_REQUIRED_MESSAGE,
+  name_too_long: PERSON_NAME_TOO_LONG_MESSAGE,
+};
+
+/**
+ * Copy for a 400 on the add-person name, or null when the response has no name error.
+ * The server codes name_required and name_too_long map to the person copy, not the trip copy.
+ */
+export function personNameErrorMessage(error: unknown): string | null {
+  const errors = body(error)?.['errors'];
+  if (!isRecord(errors)) {
+    return null;
+  }
+  const codes = errors['name'];
+  if (!Array.isArray(codes)) {
+    return null;
+  }
+  const code = codes[0];
+  return typeof code === 'string' && Object.hasOwn(PERSON_NAME_MESSAGES, code) ? PERSON_NAME_MESSAGES[code] : GENERIC_ERROR_MESSAGE;
+}
+
+/** F3.R3: the duplicate copy, using the trimmed name the user typed. */
+export function duplicatePersonMessage(name: string): string {
+  return `${name} is already on this trip.`;
+}
 
 /** Reason passed in the /login query string when the guard redirects. */
 export const LOGIN_REQUIRED_REASON = 'login-required';
