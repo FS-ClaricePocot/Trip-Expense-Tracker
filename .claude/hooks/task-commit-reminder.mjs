@@ -7,6 +7,9 @@
 // from there. The reminder is a systemMessage: shown to you only, NOT sent to the model, so the
 // hook costs no tokens.
 //
+// It only looks at git, so it can't tell when a background agent is still working. The wording
+// says to wait for that before clearing.
+//
 // The first run in a session only records HEAD, so it never fires for commits made before the
 // session started. Turn it off with TASK_REMINDER_OFF=1. It never blocks Claude: errors are ignored.
 
@@ -44,8 +47,9 @@ async function main() {
   const dirty = git(cwd, ['status', '--porcelain', '--untracked-files=no']);
   const note = dirty ? ' (You still have uncommitted changes to tracked files: commit or set them aside first.)' : '';
   const message =
-    `${ids} committed. Progress is in git, so run /clear before the next task: ` +
-    `/implement-feature picks up from the commit history.${note}`;
+    `${ids} committed. Progress is in git. Once nothing is running in the background and you've ` +
+    `reviewed and committed, run /clear before the next task: /implement-feature picks up from ` +
+    `the commit history.${note}`;
   process.stdout.write(JSON.stringify({ systemMessage: message }));
 }
 
