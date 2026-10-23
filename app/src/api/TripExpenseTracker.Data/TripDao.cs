@@ -16,10 +16,12 @@ public sealed class TripDao : ITripDao
         ORDER BY created_at DESC, id DESC
         """;
 
+    // The people count sits in the same owner-filtered statement, so a trip the owner does not own returns no row (F2.R9, F3.R11).
     private const string GetSql = """
-        SELECT id AS "Id", owner_user_id AS "OwnerUserId", name AS "Name", created_at AS "CreatedAt"
-        FROM trips
-        WHERE owner_user_id = @Owner AND id = @Id
+        SELECT t.id AS "Id", t.owner_user_id AS "OwnerUserId", t.name AS "Name", t.created_at AS "CreatedAt",
+               (SELECT COUNT(*)::int FROM people p WHERE p.trip_id = t.id) AS "PeopleCount"
+        FROM trips t
+        WHERE t.owner_user_id = @Owner AND t.id = @Id
         """;
 
     private const string CountSql = """
@@ -79,7 +81,7 @@ public sealed class TripDao : ITripDao
             new { Owner = owner, Id = id },
             transaction: _unitOfWork.Transaction,
             cancellationToken: cancellationToken);
-        var row = await connection.QuerySingleOrDefaultAsync<TripRow>(command);
+        var row = await connection.QuerySingleOrDefaultAsync<TripDetailRow>(command);
         return row?.ToTrip();
     }
 
@@ -152,5 +154,11 @@ public sealed class TripDao : ITripDao
     internal sealed record TripRow(Guid Id, Guid OwnerUserId, string Name, DateTime CreatedAt)
     {
         public Trip ToTrip() => new(Id, OwnerUserId, Name, new DateTimeOffset(DateTime.SpecifyKind(CreatedAt, DateTimeKind.Utc)));
+    }
+
+    /// <summary>The detail read: a trip row plus its people count (F3.R11).</summary>
+    internal sealed record TripDetailRow(Guid Id, Guid OwnerUserId, string Name, DateTime CreatedAt, int PeopleCount)
+    {
+        public Trip ToTrip() => new(Id, OwnerUserId, Name, new DateTimeOffset(DateTime.SpecifyKind(CreatedAt, DateTimeKind.Utc)), PeopleCount);
     }
 }
