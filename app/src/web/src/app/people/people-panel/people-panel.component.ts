@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -21,6 +22,7 @@ import {
   problemType,
 } from '../../core/errors/problem-mapper';
 import { Person, PeopleService } from '../people.service';
+import { RemovePersonDialogComponent, RemovePersonDialogData, RemovePersonResult } from '../remove-person-dialog/remove-person-dialog.component';
 
 /** F3.R2, mirrors the server: the trimmed name is 1 to 100 code points. Any characters are allowed. */
 const NAME_MAX_LENGTH = 100;
@@ -39,7 +41,8 @@ function nameValidator(control: AbstractControl): ValidationErrors | null {
 
 /**
  * The People panel on the trip page (F3.R12). Lists the people and holds the
- * "Add a person" field (F3.T7). The remove control (F3.T8) comes later. It has no rename control (F3.R8).
+ * "Add a person" field (F3.T7) and the remove control with its confirmation (F3.T8).
+ * It has no rename control (F3.R8).
  */
 @Component({
   selector: 'app-people-panel',
@@ -50,6 +53,7 @@ function nameValidator(control: AbstractControl): ValidationErrors | null {
 })
 export class PeoplePanelComponent implements OnInit {
   private readonly peopleService = inject(PeopleService);
+  private readonly dialog = inject(Dialog);
 
   /** The trip whose people are listed. */
   readonly tripId = input.required<string>();
@@ -69,8 +73,11 @@ export class PeoplePanelComponent implements OnInit {
   protected readonly adding = signal(false);
   /** A failure with no field to point at, shown above the form. */
   protected readonly formError = signal<string | null>(null);
+  /** "{name} was removed from the trip." after a removal (F3.R6). Read out by a status region. */
+  protected readonly statusMessage = signal<string | null>(null);
 
   private readonly nameInput = viewChild.required<ElementRef<HTMLInputElement>>('nameInput');
+  private readonly heading = viewChild.required<ElementRef<HTMLHeadingElement>>('heading');
 
   /** "1 person" for one, otherwise "{n} people" (the same wording as the trip card, F3.R13). */
   protected readonly countText = computed(() => {
@@ -136,6 +143,52 @@ export class PeoplePanelComponent implements OnInit {
       return;
     }
     void this.add(this.addForm.getRawValue().name.trim());
+  }
+
+  /** F3.R6: opens the confirmation for one person. The dialog returns focus to the control on close. */
+  protected openRemove(person: Person): void {
+    this.statusMessage.set(null);
+    this.formError.set(null);
+    const data: RemovePersonDialogData = { tripId: this.tripId(), personId: person.id, name: person.name };
+    const ref = this.dialog.open<RemovePersonResult | undefined>(RemovePersonDialogComponent, {
+      data,
+      role: 'dialog',
+      ariaModal: true,
+      ariaLabelledBy: 'remove-person-title',
+      ariaDescribedBy: 'remove-person-body',
+      // Initial focus goes to Cancel, since the action is destructive (F3.R6).
+      autoFocus: '.remove-person__cancel',
+    });
+    ref.closed.subscribe((result) => void this.onRemoveClosed(person, result));
+  }
+
+  private async onRemoveClosed(person: Person, result: RemovePersonResult | undefined): Promise<void> {
+    if (result === 'removed') {
+      this.people.update((list) => (list ?? []).filter((item) => item.id !== person.id));
+      this.statusMessage.set(`${person.name} was removed from the trip.`);
+      // The control that had focus is gone, so focus goes to the panel heading.
+      setTimeout(() => this.heading().nativeElement.focus());
+    } else if (result === 'in-use') {
+      // F3.R7: the server refused. Reload so the row shows its "In expenses" or "In payments" tag.
+      this.formError.set(`${person.name} is in an expense or payment, so they can't be removed.`);
+      await this.reload();
+    } else if (result === 'missing') {
+      // The person was already removed (for example in another tab), or the trip is gone.
+      await this.reload();
+    }
+  }
+
+  /** Reloads the list. A 404 means the trip is gone, so the trip page shows its message (F3.R10). */
+  private async reload(): Promise<void> {
+    try {
+      this.people.set(await this.peopleService.list(this.tripId()));
+    } catch (error: unknown) {
+      if (error instanceof HttpErrorResponse && error.status === 404) {
+        this.tripGone.emit();
+      } else {
+        this.formError.set(GENERIC_ERROR_MESSAGE);
+      }
+    }
   }
 
   private async add(name: string): Promise<void> {

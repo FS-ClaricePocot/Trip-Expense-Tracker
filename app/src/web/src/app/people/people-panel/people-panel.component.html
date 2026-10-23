@@ -1,5 +1,5 @@
 <section class="people-panel" aria-labelledby="people-heading">
-  <h2 id="people-heading" class="people-panel__title">People</h2>
+  <h2 #heading id="people-heading" class="people-panel__title" tabindex="-1">People</h2>
   <p class="people-panel__helper">Names are unique on a trip. People in an expense or payment can't be removed.</p>
   @if (loading()) {
     <p>Loading people…</p>
@@ -7,6 +7,7 @@
     <p role="alert">{{ genericMessage }}</p>
   } @else if (people(); as list) {
     <p class="people-panel__count">{{ countText() }}</p>
+    <p class="people-panel__status" role="status">{{ statusMessage() }}</p>
     @if (list.length === 0) {
       <p class="people-panel__empty">No one is on this trip yet. Add the people who will share its expenses.</p>
     } @else {
@@ -19,6 +20,13 @@
               <span class="people-panel__tag">In expenses</span>
             } @else if (person.inPayment) {
               <span class="people-panel__tag">In payments</span>
+            } @else {
+              <button
+                type="button"
+                class="people-panel__remove"
+                [attr.aria-label]="'Remove ' + person.name"
+                (click)="openRemove(person)"
+              >&times;</button>
             }
           </li>
         }

@@ -26,4 +26,11 @@ export class PeopleService {
   add(tripId: string, name: string): Promise<Person> {
     return firstValueFrom(this.http.post<Person>(`/api/trips/${encodeURIComponent(tripId)}/people`, { name }));
   }
+
+  /** DELETE /api/trips/{tripId}/people/{personId} (F3.R6). 204 on success; 409 when in use (F3.R7). */
+  remove(tripId: string, personId: string): Promise<void> {
+    return firstValueFrom(
+      this.http.delete<void>(`/api/trips/${encodeURIComponent(tripId)}/people/${encodeURIComponent(personId)}`),
+    );
+  }
 }
