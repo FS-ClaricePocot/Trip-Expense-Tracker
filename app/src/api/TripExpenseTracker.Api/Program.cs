@@ -9,6 +9,7 @@ using TripExpenseTracker.Api.Auth;
 using TripExpenseTracker.Api.Logging;
 using TripExpenseTracker.Api.Middleware;
 using TripExpenseTracker.Core.Auth;
+using TripExpenseTracker.Core.Expenses;
 using TripExpenseTracker.Core.People;
 using TripExpenseTracker.Core.Trips;
 using TripExpenseTracker.Data;
@@ -41,9 +42,10 @@ builder.Services.AddScoped<IUserDao, UserDao>();
 builder.Services.AddScoped<ISessionDao, SessionDao>();
 builder.Services.AddScoped<ITripDao, TripDao>();
 builder.Services.AddScoped<IPersonDao, PersonDao>();
+builder.Services.AddScoped<IExpenseDao, ExpenseDao>();
 builder.Services.AddScoped<TripService>();
-// No IPersonUsageSource is registered yet, so IEnumerable<IPersonUsageSource> is empty and nobody is in use (F3.R7).
-// F4 and F6 each register a source here.
+// Expenses report the people they refer to, so a person in an expense is in use (F3.R7). F6 (payments) adds its source here.
+builder.Services.AddScoped<IPersonUsageSource, ExpenseUsageSource>();
 builder.Services.AddScoped<PeopleService>();
 
 // Auth. AuthTransaction shares the scoped unit of work with the DAOs, so register and its session insert share one transaction (F1.R7).
