@@ -142,6 +142,19 @@ public class TripsControllerTests
     }
 
     [Fact]
+    public async Task List_item_carries_the_expense_count_and_total_from_the_service_result()
+    {
+        _dao.Trips.Add(new Trip(Guid.NewGuid(), Anna, "Paris 2026", Start, 0, 3, 1050));
+        _dao.Seed(Anna, "Rome 2027");
+
+        var result = await _sut.List(CancellationToken.None);
+
+        var items = ((IEnumerable<TripResponse>)((OkObjectResult)result).Value!).ToList();
+        items.Select(item => item.ExpenseCount).Should().Equal(3, 0);
+        items.Select(item => item.TotalCents).Should().Equal(1050, 0);
+    }
+
+    [Fact]
     public async Task Get_returns_the_name_and_three_zero_counts()
     {
         var trip = _dao.Seed(Anna, "Paris 2026");

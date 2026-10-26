@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { fireEvent, render, screen, waitFor } from '@testing-library/angular';
+import { TripSummary } from '../trips.service';
 import { TripListComponent } from './trip-list.component';
 
 const LOADING = 'Loading your trips…';
@@ -14,6 +15,14 @@ async function renderList(): Promise<HttpTestingController> {
     providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
   });
   return TestBed.inject(HttpTestingController);
+}
+
+/**
+ * Identity helper for list fixtures. The parameter type requires every count field
+ * (peopleCount, expenseCount, totalCents), so a fixture without them does not compile.
+ */
+function tripSummary(trip: TripSummary): TripSummary {
+  return trip;
 }
 
 describe('TripListComponent', () => {
@@ -39,9 +48,9 @@ describe('TripListComponent', () => {
   it('renders three trips as list items in the order the API returns them (F2.R5)', async () => {
     const http = await renderList();
     http.expectOne('/api/trips').flush([
-      { id: 'id-3', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z' },
-      { id: 'id-2', name: 'Porto', createdAt: '2026-10-02T10:00:00Z' },
-      { id: 'id-1', name: 'Paris', createdAt: '2026-10-01T10:00:00Z' },
+      tripSummary({ id: 'id-3', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 0, expenseCount: 0, totalCents: 0 }),
+      tripSummary({ id: 'id-2', name: 'Porto', createdAt: '2026-10-02T10:00:00Z', peopleCount: 0, expenseCount: 0, totalCents: 0 }),
+      tripSummary({ id: 'id-1', name: 'Paris', createdAt: '2026-10-01T10:00:00Z', peopleCount: 0, expenseCount: 0, totalCents: 0 }),
     ]);
 
     await waitFor(() => expect(screen.getByRole('list')).toBeTruthy());
@@ -51,7 +60,9 @@ describe('TripListComponent', () => {
 
   it('makes each trip name a link to its trip page (F2.R5)', async () => {
     const http = await renderList();
-    http.expectOne('/api/trips').flush([{ id: 'abc-123', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z' }]);
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'abc-123', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 0, expenseCount: 0, totalCents: 0 }),
+    ]);
 
     await waitFor(() => expect(screen.getByRole('link', { name: 'Lisbon' })).toBeTruthy());
     expect(screen.getByRole('link', { name: 'Lisbon' }).getAttribute('href')).toBe('/trips/abc-123');
@@ -59,28 +70,67 @@ describe('TripListComponent', () => {
 
   it('shows "3 people" on a card with three people (F3.R13, F3.AC15)', async () => {
     const http = await renderList();
-    http.expectOne('/api/trips').flush([{ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 3 }]);
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 3, expenseCount: 0, totalCents: 0 }),
+    ]);
 
     await waitFor(() => expect(screen.getByText('3 people')).toBeTruthy());
   });
 
   it('shows "1 person" on a card with one person (F3.R13, F3.AC16)', async () => {
     const http = await renderList();
-    http.expectOne('/api/trips').flush([{ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 1 }]);
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 1, expenseCount: 0, totalCents: 0 }),
+    ]);
 
     await waitFor(() => expect(screen.getByText('1 person')).toBeTruthy());
   });
 
   it('shows "No people yet" on a card with no people (F3.R13, F3.AC16)', async () => {
     const http = await renderList();
-    http.expectOne('/api/trips').flush([{ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 0 }]);
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 0, expenseCount: 0, totalCents: 0 }),
+    ]);
 
     await waitFor(() => expect(screen.getByText('No people yet')).toBeTruthy());
   });
 
+  it('shows "3 expenses", "Total spent" and the amount from cents (F4.R17, F4.R18, F4.AC19)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 2, expenseCount: 3, totalCents: 1050 }),
+    ]);
+
+    await waitFor(() => expect(screen.getByText('3 expenses')).toBeTruthy());
+    expect(screen.getByText('Total spent')).toBeTruthy();
+    expect(screen.getByText('10.50')).toBeTruthy();
+  });
+
+  it('shows "1 expense" and its total on a card with one expense (F4.AC20)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 1, expenseCount: 1, totalCents: 500 }),
+    ]);
+
+    await waitFor(() => expect(screen.getByText('1 expense')).toBeTruthy());
+    expect(screen.getByText('5.00')).toBeTruthy();
+  });
+
+  it('shows "no expenses yet" and no total line on a card with no expenses (F4.R17, F4.R18, F4.AC21)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 0, expenseCount: 0, totalCents: 0 }),
+    ]);
+
+    await waitFor(() => expect(screen.getByText('no expenses yet')).toBeTruthy());
+    expect(screen.queryByText('Total spent')).toBeNull();
+  });
+
   it('lines the people count up with the trip name on the card (mockup)', async () => {
     const http = await renderList();
-    http.expectOne('/api/trips').flush([{ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 3 }]);
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 3, expenseCount: 0, totalCents: 0 }),
+    ]);
 
     await waitFor(() => expect(screen.getByText('3 people')).toBeTruthy());
     const count = screen.getByText('3 people');
@@ -107,7 +157,9 @@ describe('TripListComponent', () => {
 
   it('puts a trip created with Create anyway at the top of the list (F2.AC1, F2.AC4)', async () => {
     const http = await renderList();
-    http.expectOne('/api/trips').flush([{ id: 'id-1', name: 'Paris 2026', createdAt: '2026-10-01T10:00:00Z' }]);
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Paris 2026', createdAt: '2026-10-01T10:00:00Z', peopleCount: 0, expenseCount: 0, totalCents: 0 }),
+    ]);
     await waitFor(() => expect(screen.getByRole('list')).toBeTruthy());
 
     fireEvent.input(screen.getByLabelText('New trip'), { target: { value: 'paris 2026' } });
@@ -117,10 +169,10 @@ describe('TripListComponent', () => {
       { status: 409, statusText: 'Conflict' },
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Create anyway' }));
-    http.expectOne('/api/trips').flush({ id: 'id-2', name: 'paris 2026', createdAt: '2026-10-22T10:00:00Z' }, {
-      status: 201,
-      statusText: 'Created',
-    });
+    http.expectOne('/api/trips').flush(
+      tripSummary({ id: 'id-2', name: 'paris 2026', createdAt: '2026-10-22T10:00:00Z', peopleCount: 0, expenseCount: 0, totalCents: 0 }),
+      { status: 201, statusText: 'Created' },
+    );
 
     await settle();
     expect(
@@ -166,10 +218,15 @@ function settle(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 50));
 }
 
-function fiftyTrips(): { id: string; name: string; createdAt: string }[] {
-  return Array.from({ length: 50 }, (_, index) => ({
-    id: `id-${index}`,
-    name: `Trip ${index}`,
-    createdAt: '2026-10-01T10:00:00Z',
-  }));
+function fiftyTrips(): TripSummary[] {
+  return Array.from({ length: 50 }, (_, index) =>
+    tripSummary({
+      id: `id-${index}`,
+      name: `Trip ${index}`,
+      createdAt: '2026-10-01T10:00:00Z',
+      peopleCount: 0,
+      expenseCount: 0,
+      totalCents: 0,
+    }),
+  );
 }

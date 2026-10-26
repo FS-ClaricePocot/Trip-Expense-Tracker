@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } 
 import { Router, RouterLink } from '@angular/router';
 import { HeaderComponent } from '../../core/header/header.component';
 import { TripCreateFormComponent } from '../trip-create-form/trip-create-form.component';
+import { formatCents } from '../../expenses/money';
 import { TRIP_DELETED_STATE, TRIP_LIMIT, TripSummary, TripsService } from '../trips.service';
+import { tripExpenseText } from './expense-count-text';
 import { tripPeopleText } from './trip-count-text';
 
 /**
@@ -27,6 +29,8 @@ export class TripListComponent implements OnInit {
   protected readonly trips = signal<TripSummary[]>([]);
   protected readonly atLimit = computed(() => this.trips().length >= TRIP_LIMIT);
   protected readonly tripPeopleText = tripPeopleText;
+  protected readonly tripExpenseText = tripExpenseText;
+  protected readonly formatCents = formatCents;
 
   async ngOnInit(): Promise<void> {
     try {

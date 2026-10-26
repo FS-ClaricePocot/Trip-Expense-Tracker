@@ -9,10 +9,12 @@ namespace TripExpenseTracker.Data;
 /// </summary>
 public sealed class TripDao : ITripDao
 {
-    // The people count is a correlated count in the same owner-filtered statement, so the list runs one query, not one per card (F3.R13, F3.R14).
+    // The people, expense count and total are correlated aggregates in the same owner-filtered statement, so the list runs one query, not one per card (F3.R13, F3.R14, F4.R17, F4.R18).
     private const string ListSql = """
         SELECT t.id AS "Id", t.owner_user_id AS "OwnerUserId", t.name AS "Name", t.created_at AS "CreatedAt",
-               (SELECT COUNT(*)::int FROM people p WHERE p.trip_id = t.id) AS "PeopleCount"
+               (SELECT COUNT(*)::int FROM people p WHERE p.trip_id = t.id) AS "PeopleCount",
+               (SELECT COUNT(*)::int FROM expenses e WHERE e.trip_id = t.id) AS "ExpenseCount",
+               (SELECT COALESCE(SUM(e.amount_cents), 0)::bigint FROM expenses e WHERE e.trip_id = t.id) AS "TotalCents"
         FROM trips t
         WHERE t.owner_user_id = @Owner
         ORDER BY t.created_at DESC, t.id DESC
@@ -73,7 +75,7 @@ public sealed class TripDao : ITripDao
             new { Owner = owner },
             transaction: _unitOfWork.Transaction,
             cancellationToken: cancellationToken);
-        var rows = await connection.QueryAsync<TripDetailRow>(command);
+        var rows = await connection.QueryAsync<TripWithExpensesRow>(command);
         return rows.Select(row => row.ToTrip()).ToList();
     }
 
@@ -152,17 +154,9 @@ public sealed class TripDao : ITripDao
     }
 
     /// <summary>
-    /// A trip row plus its people count (F3.R11, F3.R13). Used by the list and the detail reads. timestamptz comes back
-    /// as DateTime (UTC), not DateTimeOffset, so the row is converted to the domain type here (same as UserDao).
-    /// </summary>
-    internal sealed record TripDetailRow(Guid Id, Guid OwnerUserId, string Name, DateTime CreatedAt, int PeopleCount)
-    {
-        public Trip ToTrip() => new(Id, OwnerUserId, Name, new DateTimeOffset(DateTime.SpecifyKind(CreatedAt, DateTimeKind.Utc)), PeopleCount);
-    }
-
-    /// <summary>
-    /// The detail row: the people count plus the expense count and total (F4.R13). Only the single-trip read uses it,
-    /// so the list keeps its shorter row.
+    /// A trip row with its people count, expense count and total (F3.R11, F3.R13, F4.R13, F4.R17, F4.R18). Used by the
+    /// list and the single-trip read. timestamptz comes back as DateTime (UTC), not DateTimeOffset, so the row is
+    /// converted to the domain type here (same as UserDao).
     /// </summary>
     internal sealed record TripWithExpensesRow(Guid Id, Guid OwnerUserId, string Name, DateTime CreatedAt, int PeopleCount, int ExpenseCount, long TotalCents)
     {

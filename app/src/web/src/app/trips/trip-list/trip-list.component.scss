@@ -50,6 +50,21 @@ main {
   color: var(--color-text-muted);
 }
 
+.trip-card__expenses {
+  margin: 4px 0 0;
+  padding: 0 24px;
+  color: var(--color-text-muted);
+}
+
+.trip-card__total {
+  margin: 4px 0 0;
+  padding: 0 24px;
+}
+
+.trip-card__total-amount {
+  font-weight: 600;
+}
+
 .trip-card__name {
   color: var(--color-text);
   text-decoration: none;
