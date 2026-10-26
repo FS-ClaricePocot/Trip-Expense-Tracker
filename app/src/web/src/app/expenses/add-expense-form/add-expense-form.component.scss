@@ -42,6 +42,11 @@
   legend {
     font-size: 14px;
     font-weight: 600;
+  }
+
+  /* Plain labels and the legend have no padding. Participant chips (.add-expense__person) keep theirs. */
+  label:not(.add-expense__person),
+  legend {
     padding: 0;
   }
 
@@ -138,9 +143,13 @@
   }
 }
 
-/* The flex gap above also separates avatar and name; pull the name in so they sit together. */
+/* The flex gap above also separates avatar and name; pull the name in so they sit together.
+   The min-width gives each name room inside the chip (mockup). The line-height matches the
+   24px avatar so the name's text box centres on the same line as the avatar and checkbox. */
 .add-expense__name {
+  min-width: 4.5rem;
   margin-left: -4px;
+  line-height: 24px;
 }
 
 .add-expense__avatar {
