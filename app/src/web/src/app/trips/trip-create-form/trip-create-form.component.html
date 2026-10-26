@@ -1,0 +1,66 @@
+<form class="trip-create" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <svg class="trip-create__waves" viewBox="0 0 700 200" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <path d="M300 30 C 420 0, 520 60, 640 30 S 760 10, 800 30" />
+    <path d="M300 62 C 420 32, 520 92, 640 62 S 760 42, 800 62" />
+    <path d="M300 94 C 420 64, 520 124, 640 94 S 760 74, 800 94" />
+    <path d="M300 126 C 420 96, 520 156, 640 126 S 760 106, 800 126" />
+    <path d="M300 158 C 420 128, 520 188, 640 158 S 760 138, 800 158" />
+  </svg>
+  @if (limited()) {
+    <p id="trip-message" class="trip-create__message trip-create__message--full" role="alert">
+      <svg class="trip-create__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M12 8v4M12 16h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <span>{{ limitMessage }}</span>
+    </p>
+  } @else if (duplicateName(); as name) {
+    <div id="trip-message" class="trip-create__message trip-create__message--warning trip-create__message--full" role="alert">
+      <p class="trip-create__warning-text">
+        <svg class="trip-create__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M12 3l10 18H2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+          <path d="M12 10v4M12 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <span>You already have a trip called '{{ name }}'. Create another one with the same name?</span>
+      </p>
+      <div class="trip-create__warning-actions">
+        <button type="button" class="secondary-button" [disabled]="submitting()" (click)="createAnyway()">Create anyway</button>
+        <button type="button" class="secondary-button" (click)="cancelDuplicate()">Cancel</button>
+      </div>
+    </div>
+  } @else if (formError(); as message) {
+    <p id="trip-message" class="trip-create__message trip-create__message--full" role="alert">
+      <svg class="trip-create__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M12 8v4M12 16h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <span>{{ message }}</span>
+    </p>
+  }
+
+  <div class="trip-create__field">
+    <label for="trip-name">New trip</label>
+    <input
+      #nameInput
+      id="trip-name"
+      type="text"
+      placeholder="Weekend in Baguio"
+      formControlName="name"
+      autocomplete="off"
+      [attr.aria-invalid]="fieldMessage() ? 'true' : null"
+      [attr.aria-describedby]="describedBy()"
+    />
+    <p id="trip-name-error" class="field-error" aria-live="polite">{{ fieldMessage() }}</p>
+  </div>
+
+  <button type="submit" class="trip-create__submit" [disabled]="submitting() || limited()">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    </svg>
+    @if (submitting()) {
+      Creating trip…
+    } @else {
+      Create trip
+    }
+  </button>
+</form>

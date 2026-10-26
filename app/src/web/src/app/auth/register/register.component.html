@@ -1,0 +1,143 @@
+<main class="auth-page">
+  <aside class="brand-panel">
+    <svg class="brand-panel__waves" viewBox="0 0 700 820" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <g fill="none" stroke="#1a7db6" stroke-width="1.4">
+        <path d="M-40 70 C 80 20, 200 120, 330 70 S 580 20, 760 80" />
+        <path d="M-40 110 C 80 60, 200 160, 330 110 S 580 60, 760 120" />
+        <path d="M-40 150 C 80 100, 200 200, 330 150 S 580 100, 760 160" />
+        <path d="M-40 190 C 80 140, 200 240, 330 190 S 580 140, 760 200" />
+        <path d="M-40 380 C 100 340, 220 420, 360 380 S 600 340, 760 390" />
+        <path d="M-40 415 C 100 375, 220 455, 360 415 S 600 375, 760 425" />
+        <path d="M-40 560 C 100 500, 230 620, 380 560 S 600 500, 760 590" />
+        <path d="M-40 600 C 100 540, 230 660, 380 600 S 600 540, 760 630" />
+        <path d="M-40 640 C 100 580, 230 700, 380 640 S 600 580, 760 670" />
+        <path d="M-40 680 C 100 620, 230 740, 380 680 S 600 620, 760 710" />
+        <path d="M-40 720 C 100 660, 230 780, 380 720 S 600 660, 760 750" />
+      </g>
+    </svg>
+
+    <p class="brand-panel__logo">
+      <svg class="brand-panel__logo-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <rect x="3" y="7" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
+        <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Trip Expense Tracker</span>
+    </p>
+
+    <div>
+      <h2 class="brand-panel__heading">
+        Plan the fun.<br />
+        <span class="brand-panel__accent">We'll do the math.</span>
+      </h2>
+      <p class="brand-panel__lead">
+        Create a trip, add who's coming, and every expense is split equally, down to the cent.
+      </p>
+    </div>
+
+    <div class="scene" aria-hidden="true">
+      <svg class="scene__route" viewBox="0 0 560 300" preserveAspectRatio="none" focusable="false">
+        <path d="M60 60 C 180 30, 240 150, 320 130 S 460 90, 480 240" fill="none" stroke="#fdba74" stroke-width="2" stroke-dasharray="2 9" stroke-linecap="round" />
+      </svg>
+      <div class="scene-card scene-card--trip">
+        <span class="scene-card__label">New trip</span>
+        <span class="scene-card__title">Weekend in Baguio</span>
+        <span class="scene-card__people">
+          <span class="avatar avatar--sam">S</span><span class="avatar avatar--alex">A</span><span class="avatar avatar--jo">J</span>
+          <span class="scene-card__label">3 people</span>
+        </span>
+      </div>
+      <div class="scene-card scene-card--split">
+        <span class="scene-card__row">
+          <span class="scene-card__label">Snacks · split 3 ways</span>
+          <span class="scene-card__amount">10.00</span>
+        </span>
+        <span class="shares">
+          <span class="share"><span>Sam</span><b>3.34</b></span>
+          <span class="share"><span>Alex</span><b>3.33</b></span>
+          <span class="share"><span>Jo</span><b>3.33</b></span>
+        </span>
+        <span class="scene-card__note">Leftover cents go to people in the order they were added.</span>
+      </div>
+      <span class="scene__pin">
+        <svg viewBox="0 0 24 24" focusable="false"><path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z" /><circle cx="12" cy="11" r="2.2" /></svg>
+      </span>
+    </div>
+
+    <ol class="steps">
+      <li><span class="steps__num" aria-hidden="true">1</span>Create a trip</li>
+      <li><span class="steps__num" aria-hidden="true">2</span>Add the people on it</li>
+      <li><span class="steps__num" aria-hidden="true">3</span>Log who paid for what</li>
+    </ol>
+  </aside>
+
+  <div class="auth-content">
+    <p class="auth-switch">Already have an account? <a routerLink="/login">Log in</a></p>
+
+    <div class="auth-card-wrap">
+      <section class="auth-card" aria-labelledby="register-heading">
+        <div>
+          <h1 id="register-heading">Create your account</h1>
+          <p class="auth-card__subtitle">Just an email and a password.</p>
+        </div>
+
+        <div class="form-alert" role="alert">
+          @if (formError(); as message) {
+            <p class="form-alert__box">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+                <path d="M12 8v4M12 16h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+              <span>{{ message }}</span>
+            </p>
+          }
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="field">
+            <label for="email">Email</label>
+            <input
+              #emailInput
+              id="email"
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              [attr.aria-invalid]="fieldMessage('email') ? 'true' : null"
+              [attr.aria-describedby]="fieldMessage('email') ? 'email-error' : null"
+            />
+            <p id="email-error" class="field-error" aria-live="polite">{{ fieldMessage('email') }}</p>
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <input
+              #passwordInput
+              id="password"
+              type="password"
+              formControlName="password"
+              autocomplete="new-password"
+              [attr.aria-invalid]="fieldMessage('password') ? 'true' : null"
+              [attr.aria-describedby]="fieldMessage('password') ? 'password-error' : null"
+            />
+            <p id="password-error" class="field-error" aria-live="polite">{{ fieldMessage('password') }}</p>
+          </div>
+
+          <button type="submit" class="primary-button" [disabled]="submitting()">
+            @if (submitting()) {
+              Creating your account…
+            } @else {
+              Create account <span aria-hidden="true">→</span>
+            }
+          </button>
+        </form>
+
+        <p class="auth-card__privacy">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
+            <path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2" />
+          </svg>
+          <span>Your trips are private. Only you can see them.</span>
+        </p>
+      </section>
+    </div>
+  </div>
+</main>

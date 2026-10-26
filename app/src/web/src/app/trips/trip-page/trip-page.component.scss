@@ -1,0 +1,36 @@
+main {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  justify-items: start;
+}
+
+.trip-page__title {
+  margin: 0;
+  font-size: 28px;
+  overflow-wrap: anywhere;
+}
+
+.trip-page__delete {
+  font: inherit;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0.5rem 1rem;
+  border: 1px solid #b42318;
+  border-radius: var(--radius-control);
+  color: #b42318;
+  background: #fff;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-soft);
+    outline-offset: 2px;
+  }
+}
+
+a {
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+}

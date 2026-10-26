@@ -1,0 +1,18 @@
+<div class="delete-trip">
+  <h2 id="delete-trip-title" class="delete-trip__title">Delete {{ data.name }}?</h2>
+  <div id="delete-trip-body" class="delete-trip__body">
+    <p>This deletes the trip and everything in it. You can't undo this.</p>
+    <ul class="delete-trip__counts">
+      <li>{{ data.peopleCount }} people</li>
+      <li>{{ data.expenseCount }} expenses</li>
+      <li>{{ data.paymentCount }} payment</li>
+    </ul>
+  </div>
+  @if (errorMessage(); as message) {
+    <p class="delete-trip__error" role="alert">{{ message }}</p>
+  }
+  <div class="delete-trip__actions">
+    <button type="button" class="delete-trip__confirm" [disabled]="submitting()" (click)="confirm()">Delete trip</button>
+    <button type="button" class="delete-trip__cancel" (click)="cancel()">Cancel</button>
+  </div>
+</div>

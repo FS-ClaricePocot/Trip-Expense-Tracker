@@ -47,15 +47,21 @@ If a question is really about **product behavior** (what the user sees or what t
 Fill in [plan-template.md](plan-template.md). How to shape the tasks:
 
 - **IDs** are `F<N>.T1`, `F<N>.T2`, …, in the order they should be built, each building on finished work.
-- **Order through the layers** the way `CLAUDE.md` lays them out: the DbUp migration first, then Core (models, pure logic, DAO interfaces), then Data (Dapper DAOs), then the API controllers, then the Angular feature folder, then E2E. Prefer thin vertical slices over finishing one layer at a time: for example "add expense" end to end before "delete expense", so something runs early.
+- **Order through the layers** the way `CLAUDE.md` lays them out: the DbUp migration first, then Core (models, pure logic, DAO interfaces), then Data (Dapper DAOs), then the API controllers, then the Angular feature folder. Prefer thin vertical slices over finishing one layer at a time: for example "add expense" end to end before "delete expense", so something runs early.
 - **Size:** each task is one reviewable commit. It names the files it creates or changes, what changes, which `R` and `AC` IDs it covers, the tests it adds, and a concrete **Done when** that someone else could check.
 - **Human review:** mark a task **Needs human review** when it touches anything the project rules reserve for a person: authentication, secrets or environment files, database migrations, CI or deployment config, or deleting or disabling tests.
 - **Rules that are easy to break:** call them out on the tasks where they apply. For example, money as `long` cents with the one parser in Core, ownership in the `WHERE` clause, multi-record writes in one transaction, parameterized SQL, the logger instead of console output, and nothing sensitive in logs.
+- **Tests are unit tests only** (project rules, `CLAUDE.md`). Plan no integration or end-to-end tests:
+  - Core logic and worked examples: xUnit with fakes.
+  - Controllers: unit tests that construct the controller with a fake service and a fake `ICurrentUser` (status codes, error codes, the identical `404`, the owner taken from the session).
+  - Angular components: Angular Testing Library with mocked HTTP.
+  - Migrations and DAOs (SQL) get no automated test. Give them a **code-review checklist** (owner in every `WHERE`, ordering, error-code mappings, transactions, locks, cascades) and a short manual check, and mark them **Needs human review**.
+  - F1's existing integration and Playwright tests stay: note that they must still pass at the end of the feature, and update them only when a requirement changes what they assert.
 - **Other features' code:** when a task has to change code another feature owns (for example F4 turning on F3's "in use" check), give it its own task, name the feature, and list it under Prerequisites, because that feature's tests can break.
 - **Copy:** UI tasks use the exact copy from the spec's States & errors table. Don't rewrite it.
 - **Describe, don't implement.** A short signature, SQL table sketch or request/response shape is fine when it pins down a contract. Full code is not: it goes stale and belongs in the commits.
 
-**Coverage check before saving.** Every `F<N>.R*` maps to at least one task, every `F<N>.AC*` to at least one test, and each worked example the feature uses is a named test. Fill in the traceability table. If anything is uncovered, fix the plan before saving it, not after.
+**Coverage check before saving.** Every `F<N>.R*` maps to at least one task, every `F<N>.AC*` to at least one unit test or, where only a database could prove it, a named review item or manual check, and each worked example the feature uses is a named unit test. Fill in the traceability table. If anything is uncovered, fix the plan before saving it, not after.
 
 ## 5. Finish
 
