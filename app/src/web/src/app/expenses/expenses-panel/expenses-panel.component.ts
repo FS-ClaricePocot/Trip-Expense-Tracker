@@ -1,16 +1,19 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, inject, input, output, signal, computed } from '@angular/core';
 import { GENERIC_ERROR_MESSAGE } from '../../core/errors/problem-mapper';
+import { AddExpenseFormComponent } from '../add-expense-form/add-expense-form.component';
 import { Expense, ExpenseList, ExpensesService } from '../expenses.service';
 import { formatCents } from '../money';
 
 /**
  * The Expenses panel on the trip page (F4.R8, F4.R10 to F4.R13). Lists the expenses
- * newest first, with the count and the total. It has no edit control (F4.R12), and the
- * generic icon is shown on every row until the keyword rule is decided (F4.R11 interim).
+ * newest first, with the count and the total, and the add form below them (F4.T8).
+ * It has no edit control (F4.R12), and the generic icon is shown on every row until the
+ * keyword rule is decided (F4.R11 interim).
  */
 @Component({
   selector: 'app-expenses-panel',
+  imports: [AddExpenseFormComponent],
   templateUrl: './expenses-panel.component.html',
   styleUrl: './expenses-panel.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -48,6 +51,19 @@ export class ExpensesPanelComponent implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  /** F4.R8: a saved expense goes to the top, and the count and total move with it. */
+  protected onAdded(expense: Expense): void {
+    this.list.update((current) =>
+      current === null
+        ? current
+        : {
+            total: current.total + expense.amountCents,
+            count: current.count + 1,
+            expenses: [expense, ...current.expenses],
+          },
+    );
   }
 
   /** F4.R10: "{payer} paid · split {N} ways". Shares are not shown, because leftover cents can differ. */

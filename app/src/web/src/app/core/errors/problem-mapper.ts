@@ -45,6 +45,51 @@ export function duplicatePersonMessage(name: string): string {
   return `${name} is already on this trip.`;
 }
 
+/** Copy from docs/specs/features/F4-expenses.md, States & errors (add expense). */
+export const EXPENSE_DESCRIPTION_REQUIRED_MESSAGE = 'Enter a description.';
+export const EXPENSE_DESCRIPTION_TOO_LONG_MESSAGE = 'A description can be at most 100 characters.';
+export const EXPENSE_AMOUNT_REQUIRED_MESSAGE = 'Enter an amount.';
+export const EXPENSE_AMOUNT_INVALID_MESSAGE = 'Enter an amount like 12.50.';
+export const EXPENSE_AMOUNT_NOT_POSITIVE_MESSAGE = 'Enter an amount greater than 0.00.';
+export const EXPENSE_AMOUNT_TOO_MANY_DECIMALS_MESSAGE = 'An amount can have at most 2 decimal places.';
+export const EXPENSE_AMOUNT_TOO_LARGE_MESSAGE = 'That amount is too large to record.';
+export const EXPENSE_PAYER_REQUIRED_MESSAGE = 'Choose who paid.';
+export const EXPENSE_PARTICIPANTS_REQUIRED_MESSAGE = 'Choose at least one person to split between.';
+export const EXPENSE_NO_PEOPLE_MESSAGE = 'Add people to the trip before adding an expense.';
+
+/** Server field codes (ValidationProblemDetails) for an expense to copy. Codes not listed here get the generic message. */
+const EXPENSE_FIELD_MESSAGES: Record<string, string> = {
+  description_required: EXPENSE_DESCRIPTION_REQUIRED_MESSAGE,
+  description_too_long: EXPENSE_DESCRIPTION_TOO_LONG_MESSAGE,
+  amount_required: EXPENSE_AMOUNT_REQUIRED_MESSAGE,
+  amount_invalid: EXPENSE_AMOUNT_INVALID_MESSAGE,
+  amount_not_positive: EXPENSE_AMOUNT_NOT_POSITIVE_MESSAGE,
+  amount_too_many_decimals: EXPENSE_AMOUNT_TOO_MANY_DECIMALS_MESSAGE,
+  amount_too_large: EXPENSE_AMOUNT_TOO_LARGE_MESSAGE,
+  payer_required: EXPENSE_PAYER_REQUIRED_MESSAGE,
+  participants_required: EXPENSE_PARTICIPANTS_REQUIRED_MESSAGE,
+};
+
+/**
+ * Copy for a 400 on the add-expense form, per field (keys are the form's field names:
+ * description, amount, payerPersonId, participantPersonIds). Only the first code of each field is used.
+ */
+export function expenseFieldErrorMessages(error: unknown): Record<string, string> {
+  const result: Record<string, string> = {};
+  const errors = body(error)?.['errors'];
+  if (!isRecord(errors)) {
+    return result;
+  }
+  for (const [field, codes] of Object.entries(errors)) {
+    const first = Array.isArray(codes) ? codes[0] : undefined;
+    result[field] =
+      typeof first === 'string' && Object.hasOwn(EXPENSE_FIELD_MESSAGES, first)
+        ? EXPENSE_FIELD_MESSAGES[first]
+        : GENERIC_ERROR_MESSAGE;
+  }
+  return result;
+}
+
 /** Reason passed in the /login query string when the guard redirects. */
 export const LOGIN_REQUIRED_REASON = 'login-required';
 

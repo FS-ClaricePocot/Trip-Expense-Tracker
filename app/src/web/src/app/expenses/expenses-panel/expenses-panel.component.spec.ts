@@ -44,6 +44,9 @@ function render(): void {
 async function settle(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 20));
   fixture.detectChanges();
+  // F4.T8 stub: the add form asks for the trip's people once the list has loaded. Answer it with an empty list.
+  TestBed.inject(HttpTestingController).match('/api/trips/trip-1/people').forEach((request) => request.flush([]));
+  fixture.detectChanges();
 }
 
 /** Renders the panel and answers its list request with the given body. */

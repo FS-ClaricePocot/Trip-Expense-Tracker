@@ -29,5 +29,6 @@
         }
       </ul>
     }
+    <app-add-expense-form [tripId]="tripId()" (added)="onAdded($event)" (tripGone)="tripGone.emit()" />
   }
 </section>

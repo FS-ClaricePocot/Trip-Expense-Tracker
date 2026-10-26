@@ -1,0 +1,127 @@
+/* The add-expense form at the foot of the Expenses panel (F4.T8). Fields stack in one column. */
+.add-expense {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border, #e4e7ec);
+}
+
+.add-expense__message {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-control);
+  color: #7a1b13;
+  background: #fef3f2;
+}
+
+.add-expense__field,
+.add-expense__split {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+
+  label,
+  legend {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 0;
+  }
+
+  input[type='text'],
+  select {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid #98a2b3;
+    border-radius: var(--radius-control);
+    background: #fff;
+    color: var(--color-text);
+    font: inherit;
+
+    &:focus-visible {
+      outline: 2px solid var(--color-accent-soft);
+      outline-offset: 2px;
+    }
+
+    &[aria-invalid='true'] {
+      border-color: var(--color-danger);
+      box-shadow: 0 0 0 1px var(--color-danger);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+    }
+  }
+}
+
+.add-expense__error {
+  margin: 0;
+  min-height: 1.25em;
+  font-size: 14px;
+  color: #7a1b13;
+
+  &:not(:empty) {
+    justify-self: start;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--color-danger-bg, #fef3f2);
+  }
+}
+
+.add-expense__people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.add-expense__person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 400;
+  min-height: 44px;
+
+  input {
+    width: 20px;
+    height: 20px;
+  }
+
+  input:focus-visible {
+    outline: 2px solid var(--color-accent-soft);
+    outline-offset: 2px;
+  }
+}
+
+.add-expense__hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted, #475467);
+}
+
+.add-expense__submit {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--color-accent);
+  color: #1c1917;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-soft);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
