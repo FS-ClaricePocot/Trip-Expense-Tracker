@@ -138,6 +138,11 @@
   }
 }
 
+/* The flex gap above also separates avatar and name; pull the name in so they sit together. */
+.add-expense__name {
+  margin-left: -4px;
+}
+
 .add-expense__avatar {
   display: inline-flex;
   flex: none;
