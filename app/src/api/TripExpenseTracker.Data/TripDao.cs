@@ -18,10 +18,12 @@ public sealed class TripDao : ITripDao
         ORDER BY t.created_at DESC, t.id DESC
         """;
 
-    // The people count sits in the same owner-filtered statement, so a trip the owner does not own returns no row (F2.R9, F3.R11).
+    // The people, expense count and total sit in the same owner-filtered statement, so a trip the owner does not own returns no row (F2.R9, F3.R11, F4.R13).
     private const string GetSql = """
         SELECT t.id AS "Id", t.owner_user_id AS "OwnerUserId", t.name AS "Name", t.created_at AS "CreatedAt",
-               (SELECT COUNT(*)::int FROM people p WHERE p.trip_id = t.id) AS "PeopleCount"
+               (SELECT COUNT(*)::int FROM people p WHERE p.trip_id = t.id) AS "PeopleCount",
+               (SELECT COUNT(*)::int FROM expenses e WHERE e.trip_id = t.id) AS "ExpenseCount",
+               (SELECT COALESCE(SUM(e.amount_cents), 0)::bigint FROM expenses e WHERE e.trip_id = t.id) AS "TotalCents"
         FROM trips t
         WHERE t.owner_user_id = @Owner AND t.id = @Id
         """;
@@ -83,7 +85,7 @@ public sealed class TripDao : ITripDao
             new { Owner = owner, Id = id },
             transaction: _unitOfWork.Transaction,
             cancellationToken: cancellationToken);
-        var row = await connection.QuerySingleOrDefaultAsync<TripDetailRow>(command);
+        var row = await connection.QuerySingleOrDefaultAsync<TripWithExpensesRow>(command);
         return row?.ToTrip();
     }
 
@@ -156,5 +158,14 @@ public sealed class TripDao : ITripDao
     internal sealed record TripDetailRow(Guid Id, Guid OwnerUserId, string Name, DateTime CreatedAt, int PeopleCount)
     {
         public Trip ToTrip() => new(Id, OwnerUserId, Name, new DateTimeOffset(DateTime.SpecifyKind(CreatedAt, DateTimeKind.Utc)), PeopleCount);
+    }
+
+    /// <summary>
+    /// The detail row: the people count plus the expense count and total (F4.R13). Only the single-trip read uses it,
+    /// so the list keeps its shorter row.
+    /// </summary>
+    internal sealed record TripWithExpensesRow(Guid Id, Guid OwnerUserId, string Name, DateTime CreatedAt, int PeopleCount, int ExpenseCount, long TotalCents)
+    {
+        public Trip ToTrip() => new(Id, OwnerUserId, Name, new DateTimeOffset(DateTime.SpecifyKind(CreatedAt, DateTimeKind.Utc)), PeopleCount, ExpenseCount, TotalCents);
     }
 }

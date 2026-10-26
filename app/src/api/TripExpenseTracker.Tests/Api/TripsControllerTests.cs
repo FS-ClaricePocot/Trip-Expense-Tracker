@@ -157,6 +157,20 @@ public class TripsControllerTests
     }
 
     [Fact]
+    public async Task Get_returns_the_real_expense_count_and_total_from_the_service_result()
+    {
+        var trip = new Trip(Guid.NewGuid(), Anna, "Paris 2026", Start, 3, 3, 1050);
+        _dao.Trips.Add(trip);
+
+        var result = await _sut.Get(trip.Id.ToString(), CancellationToken.None);
+
+        var body = ((OkObjectResult)result).Value.Should().BeOfType<TripDetailResponse>().Subject;
+        body.ExpenseCount.Should().Be(3);
+        body.TotalCents.Should().Be(1050);
+        body.PaymentCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Get_of_a_trip_owned_by_someone_else_returns_the_same_404_as_a_missing_trip()
     {
         var bensTrip = _dao.Seed(Ben, "Ben's trip");
