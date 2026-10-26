@@ -47,6 +47,7 @@ builder.Services.AddScoped<TripService>();
 // Expenses report the people they refer to, so a person in an expense is in use (F3.R7). F6 (payments) adds its source here.
 builder.Services.AddScoped<IPersonUsageSource, ExpenseUsageSource>();
 builder.Services.AddScoped<PeopleService>();
+builder.Services.AddScoped<ExpenseService>();
 
 // Auth. AuthTransaction shares the scoped unit of work with the DAOs, so register and its session insert share one transaction (F1.R7).
 builder.Services.AddScoped<IAuthTransaction>(sp =>
