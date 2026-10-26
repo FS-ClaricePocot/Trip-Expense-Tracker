@@ -1,0 +1,97 @@
+/* Card layout follows the trip page mockup (docs/design/mockups), matching the People panel. */
+.expenses-panel {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 360px;
+  padding: 20px;
+  border: 1px solid #e4e7ec;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 6%);
+
+  &__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #0b4a6f;
+  }
+
+  &__count {
+    margin: 0;
+    color: #475467;
+  }
+
+  &__total {
+    margin: 8px 0 0;
+    color: #344054;
+  }
+
+  &__total-amount {
+    font-weight: 600;
+    color: #0b4a6f;
+  }
+
+  &__empty {
+    margin: 12px 0 0;
+    color: #475467;
+    font-size: 0.875rem;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid #eaecf0;
+  }
+
+  &__icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f2f4f7;
+    color: #344054;
+  }
+
+  &__details {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__description {
+    overflow-wrap: anywhere;
+    color: #0b4a6f;
+    font-size: 1rem;
+  }
+
+  &__meta {
+    color: #475467;
+    font-size: 0.875rem;
+  }
+
+  &__amount {
+    flex: none;
+    color: #1d2939;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+}

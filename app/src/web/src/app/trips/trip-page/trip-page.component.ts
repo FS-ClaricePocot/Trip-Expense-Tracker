@@ -4,6 +4,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { GENERIC_ERROR_MESSAGE, TRIP_NOT_FOUND_MESSAGE } from '../../core/errors/problem-mapper';
 import { HeaderComponent } from '../../core/header/header.component';
+import { ExpensesPanelComponent } from '../../expenses/expenses-panel/expenses-panel.component';
 import { PeoplePanelComponent } from '../../people/people-panel/people-panel.component';
 import { DeleteTripDialogComponent, DeleteTripDialogData } from '../delete-trip-dialog/delete-trip-dialog.component';
 import { TRIP_DELETED_STATE, TripDetail, TripsService } from '../trips.service';
@@ -15,7 +16,7 @@ import { TRIP_DELETED_STATE, TripDetail, TripsService } from '../trips.service';
  */
 @Component({
   selector: 'app-trip-page',
-  imports: [HeaderComponent, RouterLink, PeoplePanelComponent],
+  imports: [HeaderComponent, RouterLink, PeoplePanelComponent, ExpensesPanelComponent],
   templateUrl: './trip-page.component.html',
   styleUrl: './trip-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
