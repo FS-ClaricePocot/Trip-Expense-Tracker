@@ -2,7 +2,7 @@
 .expenses-panel {
   box-sizing: border-box;
   width: 100%;
-  max-width: 360px;
+  max-width: 760px;
   padding: 20px;
   border: 1px solid #e4e7ec;
   border-radius: 16px;
@@ -28,13 +28,21 @@
     color: #475467;
   }
 
+  /* Total row at the foot of the list, with the amount in the amount column (mockup). */
   &__total {
-    margin: 8px 0 0;
-    color: #344054;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin: 0;
+    padding: 16px 44px 0 0;
+    border-top: 1px solid #eaecf0;
+    color: #475467;
+    font-size: 1rem;
   }
 
   &__total-amount {
-    font-weight: 600;
+    font-size: 1.25rem;
+    font-weight: 700;
     color: #0b4a6f;
   }
 
@@ -61,20 +69,26 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 0;
+    padding: 14px 0;
     border-top: 1px solid #eaecf0;
   }
 
+  /* Category tile: light blue square with a blue icon (mockup). */
   &__icon {
     display: inline-flex;
     flex: none;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: #f2f4f7;
-    color: #344054;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--color-tint, #e0f2fe);
+    color: var(--color-primary, #0369a1);
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
   }
 
   &__details {
@@ -88,6 +102,7 @@
     overflow-wrap: anywhere;
     color: #0b4a6f;
     font-size: 1rem;
+    font-weight: 500;
   }
 
   &__meta {
@@ -97,8 +112,9 @@
 
   &__amount {
     flex: none;
-    color: #1d2939;
-    font-weight: 600;
+    color: #0b4a6f;
+    font-size: 1.125rem;
+    font-weight: 700;
     white-space: nowrap;
   }
 

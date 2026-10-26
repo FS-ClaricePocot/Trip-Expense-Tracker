@@ -1,13 +1,26 @@
-/* The add-expense form at the foot of the Expenses panel (F4.T8). Fields stack in one column. */
+/* The add-expense sub-panel at the top of the Expenses panel (F4.T8), laid out as in the trip page mockup:
+   description, amount and "Paid by" on one row with the "Add expense" button; "Split between" chips below. */
 .add-expense {
   display: grid;
-  gap: 14px;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid var(--color-border, #e4e7ec);
+  grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 1.3fr) auto;
+  gap: 14px 12px;
+  align-items: start;
+  margin-top: 16px;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--color-page, #f0f9ff);
+}
+
+.add-expense__title {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 .add-expense__message {
+  grid-column: 1 / -1;
   margin: 0;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--color-danger);
@@ -37,11 +50,15 @@
     width: 100%;
     min-height: 44px;
     padding: 0 12px;
-    border: 1px solid #98a2b3;
+    border: 1px solid var(--color-input-border, #cbddeb);
     border-radius: var(--radius-control);
     background: #fff;
     color: var(--color-text);
     font: inherit;
+
+    &::placeholder {
+      color: #98a2b3;
+    }
 
     &:focus-visible {
       outline: 2px solid var(--color-accent-soft);
@@ -59,6 +76,10 @@
   }
 }
 
+.add-expense__field {
+  min-width: 0;
+}
+
 .add-expense__error {
   margin: 0;
   min-height: 1.25em;
@@ -73,28 +94,62 @@
   }
 }
 
+/* The split group sits on one row with its legend, so the legend floats left beside the chips. */
+.add-expense__split {
+  display: block;
+  grid-column: 1 / -1;
+
+  legend {
+    float: left;
+    margin: 0 12px 0 0;
+    line-height: 40px;
+  }
+}
+
 .add-expense__people {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 8px 12px;
 }
 
+/* Participant chip: outlined pill with a checkbox, an initial avatar and the name (mockup). */
 .add-expense__person {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 14px 4px 10px;
+  border: 1px solid var(--color-primary, #0369a1);
+  border-radius: 999px;
+  background: #fff;
   font-weight: 400;
-  min-height: 44px;
+  cursor: pointer;
 
   input {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--color-primary, #0369a1);
   }
 
   input:focus-visible {
     outline: 2px solid var(--color-accent-soft);
     outline-offset: 2px;
   }
+}
+
+.add-expense__avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-tint, #e0f2fe);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .add-expense__hint {
@@ -104,16 +159,27 @@
 }
 
 .add-expense__submit {
-  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  align-self: start;
+  /* Lines up with the inputs, below the 20px label row and its 6px gap. */
+  margin-top: 26px;
   min-height: 44px;
   padding: 0 18px;
   border: 0;
   border-radius: var(--radius-control);
-  background: var(--color-accent);
-  color: #1c1917;
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
   font: inherit;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+  }
 
   &:focus-visible {
     outline: 2px solid var(--color-accent-soft);
@@ -121,7 +187,19 @@
   }
 
   &:disabled {
+    background: var(--color-primary-disabled);
     cursor: not-allowed;
-    opacity: 0.6;
+  }
+}
+
+/* Narrow cards: stack the fields in one column and drop the button's offset. */
+@media (max-width: 900px) {
+  .add-expense {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .add-expense__submit {
+    margin-top: 0;
+    justify-self: start;
   }
 }

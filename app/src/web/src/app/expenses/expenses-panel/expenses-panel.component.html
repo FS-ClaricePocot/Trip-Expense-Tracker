@@ -10,7 +10,7 @@
   } @else if (failed()) {
     <p role="alert">{{ genericMessage }}</p>
   } @else if (list(); as current) {
-    <p class="expenses-panel__total">Total <span class="expenses-panel__total-amount">{{ formatCents(current.total) }}</span></p>
+    <app-add-expense-form [tripId]="tripId()" (added)="onAdded($event)" (tripGone)="tripGone.emit()" />
     <p class="expenses-panel__notice" role="status">{{ notice() }}</p>
     @if (current.expenses.length === 0) {
       <p class="expenses-panel__empty">No expenses yet. Add the first one below.</p>
@@ -35,6 +35,6 @@
         }
       </ul>
     }
-    <app-add-expense-form [tripId]="tripId()" (added)="onAdded($event)" (tripGone)="tripGone.emit()" />
+    <p class="expenses-panel__total"><span>Total</span> <span class="expenses-panel__total-amount">{{ formatCents(current.total) }}</span></p>
   }
 </section>
