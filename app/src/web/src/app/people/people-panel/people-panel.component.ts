@@ -59,6 +59,8 @@ export class PeoplePanelComponent implements OnInit {
   readonly tripId = input.required<string>();
   /** Emitted on a 404 (F3.R10): the trip is gone, so the trip page shows its own not-found message. */
   readonly tripGone = output<void>();
+  /** Emitted with the new count whenever the list changes, so the trip page's delete dialog shows it (F3.R14). */
+  readonly countChanged = output<number>();
 
   protected readonly people = signal<Person[] | null>(null);
   protected readonly loading = signal(true);
@@ -87,7 +89,7 @@ export class PeoplePanelComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     try {
-      this.people.set(await this.peopleService.list(this.tripId()));
+      this.setPeople(await this.peopleService.list(this.tripId()));
     } catch (error: unknown) {
       // A 401 is sent to log-in by the API interceptor.
       if (error instanceof HttpErrorResponse && error.status === 404) {
@@ -164,7 +166,7 @@ export class PeoplePanelComponent implements OnInit {
 
   private async onRemoveClosed(person: Person, result: RemovePersonResult | undefined): Promise<void> {
     if (result === 'removed') {
-      this.people.update((list) => (list ?? []).filter((item) => item.id !== person.id));
+      this.setPeople((this.people() ?? []).filter((item) => item.id !== person.id));
       this.statusMessage.set(`${person.name} was removed from the trip.`);
       // The control that had focus is gone, so focus goes to the panel heading.
       setTimeout(() => this.heading().nativeElement.focus());
@@ -178,10 +180,16 @@ export class PeoplePanelComponent implements OnInit {
     }
   }
 
+  /** Sets the list and emits its count, so the trip page's copy of the count stays in step (F3.R14). */
+  private setPeople(list: Person[]): void {
+    this.people.set(list);
+    this.countChanged.emit(list.length);
+  }
+
   /** Reloads the list. A 404 means the trip is gone, so the trip page shows its message (F3.R10). */
   private async reload(): Promise<void> {
     try {
-      this.people.set(await this.peopleService.list(this.tripId()));
+      this.setPeople(await this.peopleService.list(this.tripId()));
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse && error.status === 404) {
         this.tripGone.emit();
@@ -195,7 +203,7 @@ export class PeoplePanelComponent implements OnInit {
     this.adding.set(true);
     try {
       const person = await this.peopleService.add(this.tripId(), name);
-      this.people.update((list) => [...(list ?? []), person]);
+      this.setPeople([...(this.people() ?? []), person]);
       this.addForm.reset({ name: '' });
       this.submitted.set(false);
     } catch (error: unknown) {

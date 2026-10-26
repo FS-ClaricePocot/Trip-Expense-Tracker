@@ -227,6 +227,19 @@ describe('PeoplePanelComponent', () => {
     expect(screen.getAllByRole('listitem').length).toBe(1);
   });
 
+  it('tells the trip page the new count after an add (F3.R14)', async () => {
+    await renderWith([person('p1', 'Sam')]);
+    const counts: number[] = [];
+    fixture.componentInstance.countChanged.subscribe((count) => counts.push(count));
+
+    typeName('Alex');
+    pressAdd();
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/people' }).flush(person('p2', 'Alex'), { status: 201, statusText: 'Created' });
+    await settle();
+
+    expect(counts).toEqual([2]);
+  });
+
   it('disables the button and shows "Adding…" while the request is sent (F3.R1)', async () => {
     await renderWith([]);
 

@@ -53,6 +53,11 @@ export class TripPageComponent implements OnInit {
     this.notFound.set(true);
   }
 
+  /** F3.R14: the People panel changed the list, so the delete dialog's people count is updated too. */
+  protected onPeopleCountChanged(count: number): void {
+    this.trip.update((current) => (current ? { ...current, peopleCount: count } : current));
+  }
+
   /** F2.R7: opens the confirmation. Focus returns to the Delete button when it closes. */
   protected openDelete(): void {
     const trip = this.trip();

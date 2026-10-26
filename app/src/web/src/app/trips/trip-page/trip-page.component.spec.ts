@@ -199,4 +199,26 @@ describe('TripPageComponent', () => {
     expect(screen.queryByRole('heading', { name: 'Paris 2026' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'People' })).toBeNull();
   });
+
+  it('shows the new people count in the delete dialog after a person is removed (F3.R14, F2.R7)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush({ ...TRIP, peopleCount: 1 });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    harness.detectChanges();
+    http.expectOne('/api/trips/trip-1/people').flush([{ id: 'p1', name: 'Sam', addedAt: '2026-10-01T10:00:00Z', inExpense: false, inPayment: false }]);
+    await settle(harness);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Sam' }));
+    harness.detectChanges();
+    const removeDialog = await screen.findByRole('dialog');
+    fireEvent.click(within(removeDialog).getByRole('button', { name: 'Remove' }));
+    harness.detectChanges();
+    http.expectOne({ method: 'DELETE', url: '/api/trips/trip-1/people/p1' }).flush(null, { status: 204, statusText: 'No Content' });
+    await settle(harness);
+
+    const dialog = await openDialog(harness);
+
+    expect(within(dialog).getByText('0 people')).toBeTruthy();
+    expect(within(dialog).queryByText('1 person')).toBeNull();
+  });
 });
