@@ -1,0 +1,36 @@
+<app-header />
+<main>
+  <h1>Your trips</h1>
+@if (tripDeleted) {
+  <p role="status">Trip deleted.</p>
+}
+  <app-trip-create-form [atLimit]="atLimit()" (created)="onCreated($event)" (tripLimitReached)="reload()" />
+  @if (loading()) {
+    <p role="status">Loading your trips…</p>
+  } @else if (failed()) {
+    <p role="alert">Something went wrong. Please try again.</p>
+  } @else if (trips().length === 0) {
+    <p>You have no trips yet. Create your first trip to start tracking shared expenses.</p>
+  } @else {
+    <ul class="trip-grid">
+      @for (trip of trips(); track trip.id) {
+        <li class="trip-card">
+          <h2 class="trip-card__title"><a class="trip-card__name" [routerLink]="['/trips', trip.id]">{{ trip.name }}</a></h2>
+          <p class="trip-card__people">{{ tripPeopleText(trip.peopleCount) }}</p>
+          <p class="trip-card__expenses">{{ tripExpenseText(trip.expenseCount) }}</p>
+          @if (trip.expenseCount > 0) {
+            <p class="trip-card__total">Total spent <span class="trip-card__total-amount">{{ formatCents(trip.totalCents) }}</span></p>
+          }
+          <svg class="trip-card__wave" viewBox="0 0 300 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+            <path d="M0 38 C 60 22, 120 52, 180 36 S 260 20, 300 30 V64 H0 Z" />
+          </svg>
+          <a class="trip-card__go" [routerLink]="['/trips', trip.id]" [attr.aria-label]="'Open ' + trip.name">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+</main>

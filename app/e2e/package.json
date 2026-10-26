@@ -1,0 +1,15 @@
+{
+  "name": "trip-expense-tracker-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Playwright end-to-end tests for the Trip Expense Tracker (F1.T15)",
+  "scripts": {
+    "stack": "node scripts/start-stack.mjs",
+    "test": "playwright test"
+  },
+  "type": "commonjs",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
+  }
+}

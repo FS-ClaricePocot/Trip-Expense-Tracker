@@ -1,0 +1,25 @@
+<app-header />
+<main>
+  @if (trip(); as current) {
+    <a routerLink="/trips" class="trip-page__back">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+      Your trips
+    </a>
+    <h1 class="trip-page__title">{{ current.name }}</h1>
+    <button
+      type="button"
+      class="trip-page__delete"
+      [attr.aria-label]="'Delete trip ' + current.name"
+      (click)="openDelete()"
+    >
+      Delete
+    </button>
+    <app-people-panel [tripId]="current.id" (tripGone)="onTripGone()" (countChanged)="onPeopleCountChanged($event)" />
+    <app-expenses-panel [tripId]="current.id" (tripGone)="onTripGone()" />
+  } @else if (notFound()) {
+    <p role="alert">{{ notFoundMessage }}</p>
+    <p><a routerLink="/trips">Your trips</a></p>
+  } @else if (failed()) {
+    <p role="alert">{{ genericMessage }}</p>
+  }
+</main>

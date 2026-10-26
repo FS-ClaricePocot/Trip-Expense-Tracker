@@ -1,0 +1,60 @@
+<section class="people-panel" aria-labelledby="people-heading">
+  <div class="people-panel__header">
+    <h2 #heading id="people-heading" class="people-panel__title" tabindex="-1">People</h2>
+    @if (people()) {
+      <p class="people-panel__count">{{ countText() }}</p>
+    }
+  </div>
+  @if (loading()) {
+    <p>Loading people…</p>
+  } @else if (failed()) {
+    <p role="alert">{{ genericMessage }}</p>
+  } @else if (people(); as list) {
+    <p class="people-panel__status" role="status">{{ statusMessage() }}</p>
+    @if (list.length === 0) {
+      <p class="people-panel__empty">No one is on this trip yet. Add the people who will share its expenses.</p>
+    } @else {
+      <ul class="people-panel__list">
+        @for (person of list; track person.id; let i = $index) {
+          <li class="people-panel__item">
+            <span class="people-panel__avatar" [class]="'people-panel__avatar people-panel__avatar--' + (i % 4)" aria-hidden="true">{{ initial(person.name) }}</span>
+            <span class="people-panel__name">{{ person.name }}</span>
+            @if (person.inExpense) {
+              <span class="people-panel__tag">In expenses</span>
+            } @else if (person.inPayment) {
+              <span class="people-panel__tag">In payments</span>
+            } @else {
+              <button
+                type="button"
+                class="people-panel__remove"
+                [attr.aria-label]="'Remove ' + person.name"
+                (click)="openRemove(person)"
+              >&times;</button>
+            }
+          </li>
+        }
+      </ul>
+    }
+    @if (formError(); as message) {
+      <p id="people-message" class="people-panel__message" role="alert">{{ message }}</p>
+    }
+    <form class="people-panel__add" [formGroup]="addForm" (ngSubmit)="submit()" novalidate>
+      <label for="person-name">Add a person</label>
+      <div class="people-panel__add-row">
+        <input
+          #nameInput
+          id="person-name"
+          type="text"
+          placeholder="Morgan"
+          formControlName="name"
+          autocomplete="off"
+          [attr.aria-invalid]="fieldMessage() ? 'true' : null"
+          [attr.aria-describedby]="describedBy()"
+        />
+        <button type="submit" class="people-panel__add-button" [disabled]="adding()">{{ adding() ? 'Adding…' : 'Add' }}</button>
+      </div>
+      <p id="person-name-error" class="field-error" aria-live="polite">{{ fieldMessage() }}</p>
+    </form>
+    <p class="people-panel__helper">Names are unique on a trip. People in an expense or payment can't be removed.</p>
+  }
+</section>

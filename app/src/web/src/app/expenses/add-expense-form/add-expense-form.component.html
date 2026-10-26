@@ -1,0 +1,75 @@
+<form class="add-expense" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <h3 class="add-expense__title">Add an expense</h3>
+  @if (topMessage(); as message) {
+    <p id="expense-message" class="add-expense__message" role="alert">{{ message }}</p>
+  }
+
+  <div class="add-expense__field">
+    <label for="expense-description">What was it for?</label>
+    <input
+      id="expense-description"
+      type="text"
+      placeholder="Strawberry farm tickets"
+      autocomplete="off"
+      formControlName="description"
+      [attr.aria-invalid]="message('description') ? 'true' : null"
+      [attr.aria-describedby]="describedBy('description')"
+    />
+    <p id="expense-description-error" class="add-expense__error" aria-live="polite">{{ message('description') }}</p>
+  </div>
+
+  <div class="add-expense__field">
+    <label for="expense-amount">Amount</label>
+    <input
+      id="expense-amount"
+      type="text"
+      inputmode="decimal"
+      placeholder="0.00"
+      autocomplete="off"
+      formControlName="amount"
+      [attr.aria-invalid]="message('amount') ? 'true' : null"
+      [attr.aria-describedby]="describedBy('amount')"
+    />
+    <p id="expense-amount-error" class="add-expense__error" aria-live="polite">{{ message('amount') }}</p>
+  </div>
+
+  <div class="add-expense__field">
+    <label for="expense-payer">Paid by</label>
+    <select
+      id="expense-payer"
+      formControlName="payerPersonId"
+      [attr.aria-invalid]="message('payerPersonId') ? 'true' : null"
+      [attr.aria-describedby]="describedBy('payerPersonId')"
+    >
+      <option value="" disabled hidden></option>
+      @for (person of people(); track person.id) {
+        <option [value]="person.id">{{ person.name }}</option>
+      }
+    </select>
+    <p id="expense-payer-error" class="add-expense__error" aria-live="polite">{{ message('payerPersonId') }}</p>
+  </div>
+
+  <fieldset class="add-expense__split" [attr.aria-describedby]="describedBy('participantPersonIds')">
+    <legend>Split between</legend>
+    <p id="expense-participants-error" class="add-expense__error" aria-live="polite">{{ message('participantPersonIds') }}</p>
+    <div class="add-expense__people" formGroupName="participants">
+      @for (person of people(); track person.id) {
+        <label class="add-expense__person">
+          <input type="checkbox" [formControlName]="person.id" />
+          <span class="add-expense__avatar" aria-hidden="true">{{ person.name.charAt(0) }}</span>
+          <span class="add-expense__name">{{ person.name }}</span>
+        </label>
+      }
+    </div>
+    <p class="add-expense__hint">Split equally · leftover cents go to people in the order they were added</p>
+  </fieldset>
+
+  <button type="submit" class="add-expense__submit" [disabled]="submitting() || !ready()">
+    @if (submitting()) {
+      Adding…
+    } @else {
+      <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
+      Add expense
+    }
+  </button>
+</form>

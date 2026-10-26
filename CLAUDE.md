@@ -2,6 +2,14 @@
 
 Guidance for Claude Code in this repo. Read `docs/specs/product.md` (requirements) and `docs/rules/project-rules.md` (rules that apply to everyone) before working. Feature specs live in `docs/specs/features/`. Each feature needs an implementation plan in `docs/plans/` before code is written.
 
+## Current work
+
+Update this section when a feature starts or finishes, or when a task is committed.
+
+- **Completed features:** F1 (all 15 tasks committed). F2 (all 7 tasks committed; the Playwright end-to-end run and the plan's manual checks are still pending). F3 (all tasks committed: T1–T8 and T10; T9 was removed from the plan on 2026-10-22 and its ID is not reused. The plan's manual checks, such as the T3 SQL review and the two-user check, are not recorded as done.) F4 (all tasks committed: T1–T9 and T11; T10 was removed from the plan on 2026-10-22 and its ID is not reused. The Playwright end-to-end run, the F4.AC19 manual check, and the SQL and F2 response review of T11 are not recorded as done.)
+- **Feature in progress:** none.
+- **Current task:** none. F4.T1 (expenses migration, `008bd36`), F4.T2 (money parser, share rule and expense rules, `b55ea1e`), F4.T3 (expense service and DAO interface, `4e42eaa`), F4.T4 (`ExpenseDao` and `ExpenseUsageSource`, `38d37c4`), F4.T5 (`ExpensesController`, `bbee5b0`), F4.T6 (real expense counts in trip detail, `f6c1bc5`), F4.T7 (expenses panel, `1c90def`), F4.T8 (add-expense form, `b5ba9cb`), F4.T9 (delete and shares dialogs, `0924a0f`) and F4.T11 (trip list expense count and total, `0893f19`) are committed. F3.T1 (people migration, `22ae339`), F3.T2 (people rules and `PeopleService`, `3dffb2f`), F3.T3 (`PersonDao`, `e618b63`), F3.T4 (`PeopleController`, `87ae6c0`), F3.T5 (real people count in trip detail, `b8ec505`), F3.T6 (read-only People panel, `c470f42`), F3.T7 (add a person, `29dd8c5`), F3.T8 (remove a person, `d2340aa`) and F3.T10 (people count on trip cards, `fdf739a`) are committed. F2.T1 (`trips` migration, `3a14ad5`), F2.T2 (Core trip rules and `TripService`, `8a4b0a3`), F2.T3 (`TripDao`, `c86e697`), F2.T4 (`TripsController`, `8c74b4d`), F2.T5 (trip list page, `8fb34cc`), F2.T6 (create form, `d629c91`) and F2.T7 (trip page and delete dialog, `4a94b7a`) are committed.
+
 ## Stack
 
 - **Frontend:** Angular (current stable), standalone components, TypeScript strict, Angular Router, Reactive Forms, Signals for state. No NgRx. Plain CSS/SCSS. Angular CDK for dialog focus trapping (WCAG 2.2 AA).
@@ -12,7 +20,7 @@ Guidance for Claude Code in this repo. Read `docs/specs/product.md` (requirement
 - **Auth:** server-side sessions stored in a `sessions` table. The cookie holds only a random session ID: HttpOnly, SameSite=Lax, Secure in production, no fixed expiry. Passwords are hashed with ASP.NET `PasswordHasher<T>` (PBKDF2) or BCrypt. The exact choice is made in the F1 plan.
 - **Logging:** `ILogger` with Serilog. Redact passwords, hashes, tokens and session IDs. No `Console` or `console.log` output.
 - **API:** JSON REST under `/api`. Errors use ProblemDetails. A trip the user does not own returns 404, the same as a missing trip (F1.R9).
-- **Testing:** back end uses xUnit, FluentAssertions, `WebApplicationFactory`, and Testcontainers (PostgreSQL) for integration tests. Front end uses Jest or Karma/Jasmine with Angular Testing Library. E2E uses Playwright. Tests must not depend on the current time (inject `TimeProvider`), on each other, or on a shared or production database.
+- **Testing: unit tests only for new work** (project rules). Back end: xUnit and FluentAssertions in `TripExpenseTracker.Tests`, with fakes for DAOs, `ICurrentUser` and the unit of work; controllers are unit-tested by constructing them directly. Front end: Karma/Jasmine with Angular Testing Library and mocked HTTP (headless Chrome; these count as unit tests). No new integration (`WebApplicationFactory`, Testcontainers) or end-to-end (Playwright) tests. SQL, ownership in queries, constraints, cascades and locks are checked in code review instead. F1's existing `TripExpenseTracker.IntegrationTests` and `app/e2e` suites stay and must keep passing. Tests must not depend on the current time (inject `TimeProvider`), on each other, or on a shared or production database.
 
 ## Repo layout
 
@@ -32,7 +40,7 @@ docs/       specs, plans, rules, design (existing)
 - `TripExpenseTracker.Api`: controllers, auth setup, DI, error-handling middleware.
 - `TripExpenseTracker.Core`: domain models, services, DAO interfaces, and **pure** split, balance and settlement logic (R3, R4, R6) with no I/O.
 - `TripExpenseTracker.Data`: Dapper DAOs, connection and transaction factory (`IDbConnectionFactory`, unit of work), DbUp migrations.
-- `TripExpenseTracker.Tests` (unit) and `TripExpenseTracker.IntegrationTests`.
+- `TripExpenseTracker.Tests` (unit; all new tests go here) and `TripExpenseTracker.IntegrationTests` (F1's existing tests only; no new ones).
 
 ### Front-end layout (inside `app/src/web/`)
 

@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in app/.env (see app/.env.example)}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in app/.env (see app/.env.example)}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in app/.env (see app/.env.example)}
+    ports:
+      - "${POSTGRES_PORT:?Set POSTGRES_PORT in app/.env (see app/.env.example)}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

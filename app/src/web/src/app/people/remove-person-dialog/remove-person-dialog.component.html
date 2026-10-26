@@ -1,0 +1,13 @@
+<div class="remove-person">
+  <h2 id="remove-person-title" class="remove-person__title">Remove {{ data.name }}?</h2>
+  <div id="remove-person-body" class="remove-person__body">
+    <p>They will no longer be on this trip. You can add them again later.</p>
+  </div>
+  @if (errorMessage(); as message) {
+    <p class="remove-person__error" role="alert">{{ message }}</p>
+  }
+  <div class="remove-person__actions">
+    <button type="button" class="remove-person__confirm" [disabled]="submitting()" (click)="confirm()">Remove</button>
+    <button type="button" class="remove-person__cancel" (click)="cancel()">Cancel</button>
+  </div>
+</div>

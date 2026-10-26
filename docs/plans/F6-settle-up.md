@@ -1,18 +1,18 @@
 # F6 — Settle up: Implementation plan
 
-_Status: Approved · Last updated: 2026-10-21 · Spec: [F6-settle-up](../specs/features/F6-settle-up.md) (Approved, last updated 2026-10-21)_
+_Status: Approved · Last updated: 2026-10-22 · Spec: [F6-settle-up](../specs/features/F6-settle-up.md) (Approved, last updated 2026-10-21)_
 
 ## Overview
-F6 proposes the fewest payments the app can, using the balances from F5, and lets the user mark each suggestion as paid. A recorded payment changes the balances, so the suggestions update until every balance is zero. It adds the `payments` table, the settle-up and payment endpoints, and the Settle up view: the view switch, three summary tiles, the Suggested payments panel with its dialogs, and the Payments made list. It replaces the zero payment terms in F5's formula and F3's stand-in "in use" check for payments. F6 is the last MVP build step (F1 → F6).
+F6 proposes the fewest payments the app can, using the balances from F5, and lets the user mark each suggestion as paid. A recorded payment changes the balances, so the suggestions update until every balance is zero. It adds the `payments` table, the settle-up and payment endpoints, and the Settle up view: the view switch, three summary tiles, the Suggested payments panel with its dialogs, and the Payments made list. It replaces the zero payment terms in F5's formula and registers the real "in use" source for payments with F3's people service. F6 is the last MVP build step (F1 → F6).
 
 ## Prerequisites
 - **Dependencies:**
-  - **F1: planned, not built (blocking).** Reused: `ICurrentUser`, the default-deny policy, `IUnitOfWork`, `PostgresFixture`, `FakeTimeProvider`, `problem-mapper.ts`.
+  - **F1: planned, not built (blocking).** Reused: `ICurrentUser`, the default-deny policy, `IUnitOfWork`, `FakeTimeProvider`, `problem-mapper.ts`.
   - **F2: planned, not built (blocking).** Reused: `trips`, the trip page, the delete-dialog pattern, the cascade convention.
-  - **F3: planned, not built (blocking).** Reused: `people` and `seq`, `IPersonUsageSource` (F3.T2), the stand-in for payments in F3.T4 (replaced here), and the People panel's "In payments" tag (F3.T6).
+  - **F3: planned, not built (blocking).** Reused: `people` and `seq`, `IPersonUsageSource` (F3.T2), and the People panel's "In payments" tag (F3.T6).
   - **F4: planned, not built (blocking).** Reused: `expenses`, `ExpenseDao`, `ExpenseShares`, the total (F4.R13), and the Expenses panel. F6 changes F4's add and delete code (see F6.T5).
   - **F5: planned, not built (blocking).** Reused: `BalanceCalculator`, `BalanceService`, the Balances panel (F5.T5), the summary tiles (F5.T6), and the trip-page layout (F5.T7). F6 changes the F5 formula to read payments.
-- **Other features' code:** F6.T5 changes F2 (trip-detail `paymentCount`), F3 (stand-in replaced), F4 (trip lock in add and delete), and F5 (payments term in the formula and the tile's "in N payments"). Each is listed in T5 and marked for human review.
+- **Other features' code:** F6.T5 changes F2 (trip-detail `paymentCount`), F3 (payment usage source registered), F4 (trip lock in add and delete), and F5 (payments term in the formula and the tile's "in N payments"). Each is listed in T5 and marked for human review.
 - **Setup:** none beyond the earlier features'.
 
 ## Architecture touchpoints
@@ -24,7 +24,7 @@ F6 proposes the fewest payments the app can, using the balances from F5, and let
 | `TripExpenseTracker.Api` | `Controllers/PaymentsController.cs`, `Controllers/SettleUpController.cs`, request and response records | Settle-up read, mark as paid, delete payment |
 | Angular (`app/src/web/src/app/settle-up/`) | `settle-up.service.ts`, `trip-view-switch/`, `summary-tiles-settle/`, `suggested-payments-panel/`, `mark-payment-dialog/`, `delete-payment-dialog/`, `payments-made-list/`, `settle-up-view/`, `pluralize.ts`, `date-format.ts` | The Settle up view and its parts |
 | Trip page | `app/src/web/src/app/trips/trip-page/` | Adds the view switch; shows either the Expenses view or the Settle up view |
-| Tests | `TripExpenseTracker.Tests`, `TripExpenseTracker.IntegrationTests`, web specs, `app/e2e` | Unit, integration, component and Playwright |
+| Tests | `TripExpenseTracker.Tests`, web specs | Unit tests only (project rules): Core and controllers with fakes, Angular components with mocked HTTP. Database behaviour, the trip lock and races are checked in code review. |
 
 Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Money is `long` cents.** The suggestion rule, the percentage and the amounts are integer arithmetic. The percentage uses `Int128` for the multiplication, so it cannot overflow. The client sends the amount it saw as integer cents.
@@ -78,7 +78,7 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
   - No `PUT` or `PATCH` exists (F6.R9).
   - No paging, because the number of payments is not limited.
   - The Settle up view reads the Balances panel from `GET /api/trips/{tripId}/balances` (F5), unchanged (F6.R13).
-- **In-use source (F3.R7):** `PaymentUsageSource` implements `IPersonUsageSource` with `Kind = Payment`. It returns the payers and payees of the trip's payments, filtered by `trip_id`. It replaces F3.T4's payment stand-in.
+- **In-use source (F3.R7):** `PaymentUsageSource` implements `IPersonUsageSource` with `Kind = Payment`. It returns the payers and payees of the trip's payments, filtered by `trip_id`.
 - **Trip detail:** `GET /api/trips/{id}` (F2) returns the real `paymentCount`.
 - **Browser storage:** none.
 
@@ -86,17 +86,13 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 
 ### F6.T1 — `payments` migration
 - **Files:** `app/src/api/TripExpenseTracker.Data/Migrations/0005_create_payments.sql` (embedded resource).
-- **Change:** the table and indexes in Contract changes. The payer and payee keys use `NO ACTION`, so the trip cascade still works (F2 convention, F3.T3 probe).
+- **Change:** the table and indexes in Contract changes. The payer and payee keys use `NO ACTION`, so the trip cascade still works (F2 convention).
 - **Covers:** F6.R6 (stored cents, payer and payee rules, same trip), F6.R9 (no update path in the schema is needed), F6.R17 (cascade), F3.R7 (references block removal).
-- **Tests:** integration (Testcontainers):
-  - amount `0` is rejected, and `1` is accepted;
-  - payer equal to payee is rejected by the check;
-  - a payee from another trip is rejected by the composite key;
-  - removing a person who is a payer or payee fails with `23503` (F6.AC12, F3.R7);
-  - deleting the trip removes its payments in one statement, with no `23503` (F6.AC16, F6.R17);
-  - two identical payments are both stored;
-  - running the migrations twice changes nothing.
-- **Done when:** the tests pass on a fresh container.
+- **Tests:** none automated (unit tests only). **Review:**
+  - `amount_cents > 0` and the `payer_not_payee` check;
+  - the payer and payee keys are composite references to `people (id, trip_id)` with the default `NO ACTION`, so a person from another trip is refused and a person in a payment can't be removed (F6.AC12, F3.R7);
+  - `trip_id` cascades from `trips` (F6.AC16, F6.R17); there is no `UNIQUE`, so identical payments are allowed.
+- **Done when:** the API starts in Development and DbUp applies `0005` to the local database without errors, and a reviewer has read the SQL. **Manual check:** deleting a trip with payments succeeds.
 - _Needs human review: database migration._
 
 ### F6.T2 — Core: suggestion rule, percentage and Left to settle
@@ -140,62 +136,53 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Done when:** the tests pass.
 
 ### F6.T4 — Data: `PaymentDao`, `TripLock` and `PaymentUsageSource`
-- **Files:** `TripExpenseTracker.Data/PaymentDao.cs`, `TripLock.cs`, `PaymentUsageSource.cs`, DI registration; `IntegrationTests/Data/PaymentDaoTests.cs`.
+- **Files:** `TripExpenseTracker.Data/PaymentDao.cs`, `TripLock.cs`, `PaymentUsageSource.cs`, DI registration.
 - **Change:**
   - `TripLock.LockAsync(owner, tripId)`: `SELECT id FROM trips WHERE id = @trip AND owner_user_id = @owner FOR UPDATE` on the unit of work's transaction. Zero rows is not found.
   - `PaymentDao`: insert, list newest first by `seq`, and delete with the owner join. Delete returns the affected row count.
   - `PaymentUsageSource.GetPersonIdsAsync(tripId)`: payers and payees, filtered by `trip_id` (F3.R7).
 - **Covers:** F6.R7, F6.R8, F6.R15, F6.R16 (in-use source), F6.AC6, F6.AC15, F6.AC16 (DAO side).
-- **Tests:** integration (Testcontainers):
-  - payments list newest first (F6.AC15);
-  - delete removes one payment; a second delete returns zero rows;
-  - user B cannot list, insert or delete on A's trip, and gets the same result as a missing trip;
-  - **race:** 20 parallel `MarkPaid` calls for the same suggestion, with the trip lock, record exactly one payment for that suggestion and the rest report `suggestions_changed` (F6.R18);
-  - a payment makes its payer and payee "in use" in the in-use source, so removal of either is refused (F6.AC12);
-  - trip lock: a second transaction on the same trip waits until the first commits.
-- **Done when:** the tests pass.
+- **Tests:** none automated (unit tests only; the DAO is SQL). **Code review checklist:**
+  - `TripLock` runs `SELECT ... FOR UPDATE` filtered by the owner, on the unit of work's transaction, and zero rows is "not found". This is what stops two simultaneous Mark as paid calls from recording the same suggestion twice (F6.R18);
+  - list, insert and delete join `trips` and filter on the owner, so user B gets the same result as a missing trip (F6.AC13, F6.R15);
+  - the list orders by `seq DESC` (F6.AC15); delete returns the affected row count;
+  - `PaymentUsageSource` returns payers **and** payees, filtered by `trip_id` (F6.AC12);
+  - parameters only, no string-concatenated SQL.
+- **Done when:** the build passes, the checklist is ticked by a reviewer, and a manual run behaves as expected: mark, list, delete; and marking the same suggestion from two browser tabs records it once.
+- _Needs human review: ownership and locking in SQL (no automated test covers them)._
 
 ### F6.T5 — Cross-feature changes: F2, F3, F4 and F5 code (touches approved plans)
 - **Files:**
   - **F4:** `ExpenseService` and `ExpenseDao` add and delete paths take the trip lock (F4.T3, F4.T4).
   - **F5:** `BalanceDao` reads payments; `BalanceCalculator` uses the payment terms; the "Left to settle" tile shows "in {n} payments" (F5.T5, F5.T6).
-  - **F3:** the payment stand-in in F3.T4 is replaced with `PaymentUsageSource`. The F3 "In payments" assertions are kept as they are.
+  - **F3:** `PaymentUsageSource` is registered with the people service (`Program.cs`).
   - **F2:** `TripDao` detail returns the real `paymentCount` (F2.T4).
 - **Change:**
   - F4 add and delete run inside a transaction that first takes the trip lock. The F4 behavior and every F4 assertion are unchanged. The lock is the only addition.
   - F5's formula now includes the payment sums. Every F5 test still passes, because F5's tests have no payments.
   - F5's "Left to settle" tile on the Expenses view gets the "in {n} payments" text, with the plural rule ("in 1 payment", "in 0 payments").
-  - F3's payment stand-in is replaced by the real source. Its assertions stay as they are.
+  - The payment usage source is registered, so a person in a payment shows "In payments" and can't be removed (F3's people service already handles any registered source).
 - **Covers:** F5.R1 (payment terms), F5.R8 ("in N payments"), F5.R7 (updates on payment change), F3.R7 (real payment data), F2.R7 (paymentCount), F6.R10, F6.R16.
-- **Tests:** integration:
-  - a payment changes both balances and the total stays `0` (F6.R10, F5.AC2);
-  - adding or deleting an expense while a payment is marked paid still keeps the total at `0`;
-  - F4's existing add and delete tests pass unchanged, and one new test shows the lock is taken;
-  - the Example 3 scenario through the F5 endpoint: after Jo's payment, Alex is owed and owes correctly;
-  - F3's "In payments" tag and removal refusal use a real payment;
-  - the trip detail shows `paymentCount` `1` after a payment.
-- **Done when:** the F2, F3, F4 and F5 test runs are green, with no existing assertion edited or removed.
-- _Needs human review: changes existing F2–F5 test setup and adds a lock to approved F4 code (project rules)._
+- **Tests:** unit:
+  - `BalanceCalculator` with payments: a payment raises the payer's balance and lowers the payee's by the same amount, and the total stays `0` (F6.R10, F5.AC2);
+  - **Example 3** through `BalanceCalculator`: after Jo's 40.00 payment, Sam is owed 10.00, Alex owes 10.00, Jo is settled;
+  - random expense and payment sets (fixed seed) still sum to `0`;
+  - `ExpenseService` add and delete call the trip lock before writing (fake unit of work), and F4's existing unit tests pass unchanged.
+- **Review:** `BalanceDao` reads payments inside the owner-filtered query; the detail's `paymentCount` is inside the owner-filtered query; the usage source is registered. **Manual check:** after marking a payment, the payer's People row shows "In payments" and removal is refused; the delete dialog shows "1 payment".
+- **Done when:** the tests pass and the existing F2–F5 tests pass with no assertion edited or removed.
+- _Needs human review: adds a lock to approved F4 code and changes F2, F3 and F5 code (project rules)._
 
 ### F6.T6 — Api: `PaymentsController` and `SettleUpController`
-- **Files:** `TripExpenseTracker.Api/Controllers/PaymentsController.cs`, `SettleUpController.cs`, request and response records; DI wiring; `IntegrationTests/Api/PaymentsEndpointTests.cs`, `SettleUpEndpointTests.cs`.
+- **Files:** `TripExpenseTracker.Api/Controllers/PaymentsController.cs`, `SettleUpController.cs`, request and response records; DI wiring; `TripExpenseTracker.Tests/Api/PaymentsControllerTests.cs`, `SettleUpControllerTests.cs`.
 - **Change:** the three endpoints in Contract changes. The default policy applies with no `[AllowAnonymous]`. The owner comes only from `ICurrentUser`. The amount is integer cents from the client, which is what the user saw (Contract changes). Results map to the codes in Contract changes.
 - **Covers:** F6.R1, F6.R5, F6.R6, F6.R7, F6.R8, F6.R9, F6.R12, F6.R14, F6.R15, F6.R16, F6.R17 (through the API), F6.AC1, F6.AC2, F6.AC3, F6.AC5, F6.AC6, F6.AC8, F6.AC9, F6.AC10, F6.AC11 (no update route), F6.AC13, F6.AC14, F6.AC15, F6.AC16.
-- **Tests:** integration (`WebApplicationFactory` + Testcontainers, `FakeTimeProvider`):
-  - **Example 1** through the API: the settle-up suggestions are Jo pays Sam 4000 and Alex pays Sam 1000, in that order (F6.AC1);
-  - marking Jo pays Sam 4000 returns `201`, and the next suggestion is Alex pays Sam 1000 (F6.AC2);
-  - marking the same suggestion twice: the second returns `409` `suggestions_changed` (F6.AC9);
-  - marking every suggestion gives the settled state, `leftToSettleCents` `0`, `suggestionCount` `0`, and `percentage` `100` (F6.AC3, F6.AC14);
-  - a payment with payer equal to payee returns `400` `payer_payee_same`, and amount `0` returns `400` `amount_not_positive`;
-  - delete with the wrong id returns `404` identical to a foreign trip (F6.AC6, F6.R15);
-  - the payments list is newest first (F6.AC15);
-  - the settle-up response for 199.00 paid of 200.00 owed shows `percentage` `99` (F6.AC10);
-  - the tie case through the API: Jo pays Sam 1000, then Jo pays Alex 1000 (F6.AC7);
-  - user B gets a `404` identical to a missing trip on every route (F6.AC13);
-  - a trip with no expenses gives the settled state with `percentage` `null` (F6.AC14);
-  - a payment for a person already removed gives `payer_not_on_trip` or `payee_not_on_trip` (F6.R16 path);
-  - no `PUT` or `PATCH` on a payment (F6.AC11, F6.R9);
-  - all routes return `401` with no session.
+- **Tests:** unit (xUnit, the controllers built directly with fake services and a fake `ICurrentUser`, no web host or database):
+  - the settle-up result maps to the response with suggestions in the order given, payments, `paidBackCents`, `owedCents`, `leftToSettleCents`, `suggestionCount`, `percentage` (including `null`) and the totals (F6.AC1, F6.AC8, F6.AC10, F6.AC14);
+  - a recorded payment returns `201` with its fields (F6.AC5);
+  - `suggestions_changed` maps to `409` (F6.AC9); `payer_payee_same`, `amount_not_positive`, `payer_not_on_trip` and `payee_not_on_trip` map to `400` with those codes;
+  - delete returns `204`; a missing payment and a foreign trip map to the same `404` body (F6.AC6, F6.AC13, F6.R15);
+  - the owner id is always the fake `ICurrentUser`'s, and the client's amount is passed through as integer cents.
+- **Review:** no `[AllowAnonymous]`, so F1's default-deny policy returns `401` when logged out; no `PUT` or `PATCH` actions exist (F6.AC11, F6.R9).
 - **Done when:** the tests pass and no suggestion, percentage or payment amount is computed or stored from the client.
 - _Needs human review: authorization and ownership checks._
 
@@ -284,24 +271,8 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
   - "1 payment" and "2 payments" in the heading.
 - **Done when:** the tests pass.
 
-### F6.T11 — End-to-end tests
-- **Files:** `app/e2e/settle-up.spec.ts` and shared helpers.
-- **Change:** Playwright against the local stack and a non-shared database. Setup creates people and expenses through the API.
-- **Covers:** F6.AC1, F6.AC2, F6.AC3, F6.AC4, F6.AC5, F6.AC6, F6.AC7, F6.AC8, F6.AC9, F6.AC10, F6.AC11, F6.AC12, F6.AC13, F6.AC14, F6.AC15, F6.AC16.
-- **Tests:**
-  - Example 1: the suggestions are Jo pays Sam 40.00 then Alex pays Sam 10.00 (F6.AC1);
-  - marking Jo's payment shows one suggestion left, and the tiles read "10.00 in 1 payment" (F6.AC2, F6.AC8);
-  - Cancel records nothing; the delete dialog's Cancel keeps the payment; Delete payment restores the suggestions (F6.AC4, F6.AC6);
-  - marking every suggestion gives the settled state and "Nothing to settle yet." (F6.AC3, F6.AC14);
-  - a stale suggestion in a second tab shows the stale message (F6.AC9);
-  - a person in a payment cannot be removed, and the People row shows "In payments" (F6.AC12);
-  - a second user gets "This trip no longer exists." (F6.AC13);
-  - the payments list is newest first and has no edit control (F6.AC11, F6.AC15);
-  - deleting the trip removes its payments (F6.AC16).
-- **Done when:** the suite passes headless with no state shared between tests.
-
 ### F6.T12 — Trip list: settle status on each card (touches F2 and F5 code)
-- **Files:** `TripExpenseTracker.Core/Balances/TripStatusRules.cs` (new), `TripExpenseTracker.Data/BalanceDao.cs` (owner-wide read), `TripExpenseTracker.Api/Controllers/TripsController.cs` (list response, F2), `app/src/web/src/app/trips/trip-list/` (card badge), specs; `IntegrationTests/Api/TripsEndpointTests.cs` (new assertions only); the F5.T7 card check.
+- **Files:** `TripExpenseTracker.Core/Balances/TripStatusRules.cs` (new), `TripExpenseTracker.Data/BalanceDao.cs` (owner-wide read), `TripExpenseTracker.Api/Controllers/TripsController.cs` (list response, F2), `app/src/web/src/app/trips/trip-list/` (card badge), specs; `TripExpenseTracker.Tests/Api/TripsControllerTests.cs` (new assertions only); the F5.T7 card check.
 - **Change:**
   - `TripStatus.From(expenseCount, suggestionCount)`:
     - no expenses → `none`, no badge (the mockup's "Mom's 60th in Cebu" card has people but no expenses and no badge);
@@ -314,7 +285,8 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Covers:** F6.R19, F6.R20, F5.R10 (the status, added with F6), F6.AC17, F6.AC18, F6.AC19, F6.AC20, F6.AC21. F2.R5 (list order and ownership) must still hold.
 - **Tests:**
   - unit: the status table: no expenses gives `none`; one or more suggestions gives `toSettle` with that count; no suggestions with expenses gives `settled`; Example 1 gives `toSettle` with 2;
-  - integration: each card's `paymentsToSettle` equals the `suggestionCount` from the settle-up endpoint for the same trip; another user's trips are not in the list (F6.AC21); the list order is unchanged; the owner-wide balance read runs once per list request, not once per trip (counted with a wrapper around `BalanceDao`);
+  - unit (service and Api): the trip-list service computes each card's `paymentsToSettle` with the same T2 rule the settle-up view uses, from one owner-wide read (a counting fake `IBalanceDao` shows one call per list request, not one per trip); the list item carries the `settle` field;
+  - review: the owner-wide read filters by the owner, so another user's trips are not included (F6.AC21); the list order is unchanged;
   - front end: a card with `toSettle` 2 shows "2 payments to settle" (F6.AC17); a card with `toSettle` 1 shows "1 payment to settle" (F6.AC18); a `settled` card shows "Settled up" (F6.AC19); a `none` card shows no badge (F6.AC20); the card has no Delete control (F6.R20);
   - F5.T7 check: the F5 card test (F5.AC13, "no balance status") is retired and replaced by the F6.AC17–AC21 checks above. Approved 2026-10-21.
 - **Done when:** the tests pass, and the F2 list tests pass with only the new assertions added.
@@ -323,64 +295,67 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 ## Traceability
 | Requirement | Tasks | Acceptance criteria | Tests |
 |---|---|---|---|
-| F6.R1 | T2, T6, T8 | AC1 | T2 Example 1; T6; T8 rows |
-| F6.R2 | T2, T6, T8 | AC1, AC2 | T2 rule and Example 3; T6 |
-| F6.R3 | T2, T6 | AC7 | T2 ties; T6 tie through the API |
+| F6.R1 | T2, T6, T8 | AC1 | T2 Example 1; T6 mapping; T8 rows |
+| F6.R2 | T2, T8 | AC1, AC2 | T2 rule and Example 3 |
+| F6.R3 | T2 | AC7 | T2 ties |
 | F6.R4 | T2 | AC1 | T2 follows R6 as written, no search for the minimum |
-| F6.R5 | T3, T6, T9 | AC4, AC5 | T3 mark; T6; T9 dialog |
-| F6.R6 | T1, T3, T6 | AC5 | T1 check and composite key; T3 rules; T6 `400` codes |
-| F6.R7 | T4, T6, T10 | AC5, AC15 | T4 newest first; T10 list |
+| F6.R5 | T3, T6, T9 | AC4, AC5 | T3 mark; T6 `201`; T9 dialog |
+| F6.R6 | T1, T3, T6 | AC5 | T1 review (check and composite key); T3 rules; T6 `400` codes |
+| F6.R7 | T4, T10 | AC5, AC15 | T4 review (`seq DESC`); T10 list |
 | F6.R8 | T3, T4, T6, T9 | AC6 | T3 delete; T6 `204` and `404`; T9 dialog |
-| F6.R9 | T1, T6, T10 | AC11 | T6 no `PUT`/`PATCH`; T10 no edit control |
-| F6.R10 | T5 | AC2 | T5 payment terms in F5 formula; T5 total stays `0` |
-| F6.R11 | T2, T5, T6 | AC2 | T2 recomputation; T5 F5 with payments; T6 |
-| F6.R12 | T2, T4, T6, T7 | AC8, AC10, AC14 | T2 progress and count; T6 settle-up response; T7 tiles |
+| F6.R9 | T1, T6, T10 | AC11 | T6 review (no `PUT`/`PATCH`); T10 no edit control |
+| F6.R10 | T5 | AC2 | T5 payment terms in the F5 formula; total stays `0` |
+| F6.R11 | T2, T5 | AC2 | T2 recomputation; T5 Example 3 balances |
+| F6.R12 | T2, T6, T7 | AC8, AC10, AC14 | T2 progress and count; T6 response mapping; T7 tiles |
 | F6.R13 | T7 | none | T7 Balances panel in the Settle up view |
-| F6.R14 | T6, T8 | AC3, AC14 | T6 settled state; T8 panel |
-| F6.R15 | T3, T4, T6 | AC13 | T4 owner join; T6 identical `404`; T11 |
-| F6.R16 | T4, T5, T6 | AC12 | T4 in-use source; T5 F3 real payments; T6 `payer_not_on_trip` |
-| F6.R17 | T1, T11 | AC16 | T1 cascade; T11 |
-| F6.R18 | T2, T3, T4, T6, T9 | AC9 | T3 check; T4 race; T6 `409`; T9 message |
+| F6.R14 | T3, T6, T8 | AC3, AC14 | T3 all paid; T6 settled mapping; T8 panel |
+| F6.R15 | T3, T4, T6 | AC13 | T3 foreign trip; T4 review (owner join); T6 identical `404` |
+| F6.R16 | T4, T5, T6 | AC12 | T4 review (usage source); T5 manual check; T6 `payer_not_on_trip` mapping |
+| F6.R17 | T1 | AC16 | T1 review (cascade); manual check |
+| F6.R18 | T2, T3, T4, T6, T9 | AC9 | T3 stale check; T4 review (trip lock); T6 `409`; T9 message |
 | F6.R19 | T12 | AC17, AC18, AC19, AC20 | T12 status table; card front-end tests |
-| F6.R20 | T12 | AC21 | T12 owner-only list; no Delete control on the card |
+| F6.R20 | T12 | AC21 | T12 review (owner-only read); no Delete control on the card |
 | F5.R10 (added with F6) | T12 | F6.AC17–AC21 | as above |
 
 | Acceptance criterion | Tasks | Test |
 |---|---|---|
-| F6.AC1 | T2, T6, T8, T11 | T2 Example 1; T6; T8; T11 |
-| F6.AC2 | T2, T5, T6, T11 | T2 Example 3; T6 next suggestion; T11 |
+| F6.AC1 | T2, T6, T8 | T2 Example 1; T6 mapping; T8 rows |
+| F6.AC2 | T2, T5 | T2 Example 3; T5 Example 3 balances |
 | F6.AC3 | T3, T6, T8 | T3 all paid; T6 settled; T8 panel |
-| F6.AC4 | T3, T9, T11 | T3 service records nothing unless called; T9 Cancel; T11 |
-| F6.AC5 | T3, T4, T6, T9, T10 | T3 fake clock; T6 `201`; T9 message; T10 row |
-| F6.AC6 | T3, T6, T9, T11 | T3 delete; T6; T9 Cancel; T11 |
-| F6.AC7 | T2, T6 | T2 tie; T6 tie through the API |
+| F6.AC4 | T3, T9 | T3 service records nothing unless called; T9 Cancel |
+| F6.AC5 | T3, T6, T9, T10 | T3 fake clock; T6 `201`; T9 message; T10 row |
+| F6.AC6 | T3, T6, T9 | T3 delete; T6 `204`/`404`; T9 Cancel |
+| F6.AC7 | T2 | T2 tie |
 | F6.AC8 | T2, T7 | T2 progress; T7 tiles |
-| F6.AC9 | T3, T4, T6, T9, T11 | T3 check; T4 race; T6 `409`; T9 message; T11 |
-| F6.AC10 | T2, T6, T7 | T2 99%; T6 API; T7 tile |
-| F6.AC11 | T6, T10, T11 | T6 no `PUT`; T10 no edit; T11 |
-| F6.AC12 | T1, T4, T5, T11 | T1 `23503`; T4 in-use source; T5 F3 real payment; T11 |
-| F6.AC13 | T3, T6, T11 | T3 foreign trip; T6 identical `404`; T11 |
-| F6.AC14 | T2, T6, T7, T8 | T2 zero owed `null`; T6 settled; T7 text; T8 panel |
-| F6.AC15 | T4, T6, T10, T11 | T4 order; T6; T10; T11 |
-| F6.AC16 | T1, T6, T11 | T1 cascade; T6; T11 |
-| F6.AC17 | T12, T11 | T12 "2 payments to settle"; T11 badges |
+| F6.AC9 | T3, T4, T6, T9 | T3 stale check; T4 review and two-tab manual check; T6 `409`; T9 message |
+| F6.AC10 | T2, T6, T7 | T2 99%; T6 mapping; T7 tile |
+| F6.AC11 | T6, T10 | T6 review (no `PUT`); T10 no edit |
+| F6.AC12 | T1, T4, T5 | T1 and T4 review; T5 manual check ("In payments", removal refused) |
+| F6.AC13 | T3, T6 | T3 foreign trip; T6 identical `404`; manual check with two users |
+| F6.AC14 | T2, T6, T7, T8 | T2 zero owed `null`; T6 mapping; T7 text; T8 panel |
+| F6.AC15 | T4, T10 | T4 review; T10 newest first |
+| F6.AC16 | T1 | T1 review (cascade); manual check |
+| F6.AC17 | T12 | T12 "2 payments to settle" |
 | F6.AC18 | T12 | T12 "1 payment to settle" |
-| F6.AC19 | T12, T11 | T12 "Settled up"; T11 badges |
+| F6.AC19 | T12 | T12 "Settled up" |
 | F6.AC20 | T12 | T12 no badge for a trip with no expenses |
-| F6.AC21 | T12 | T12 another user's trips excluded |
+| F6.AC21 | T12 | T12 review (owner-only read) |
 
 ## Test plan
-- **Unit (xUnit, Core):** the suggestion rule, ties and the recompute property (T2); the percentage and its `Int128` safety (T2); payment rules, the stale check, the trip lock order and the settle-up result with a fake DAO (T3).
-- **Integration (WebApplicationFactory + Testcontainers PostgreSQL):** migration, composite keys and cascade (T1); payment DAO, race and lock (T4); the cross-feature paths in F2–F5 (T5); every route, the codes, the identical `404`s and the `401`s (T6).
-- **Front end (Angular Testing Library):** the view switch, tiles and plurals (T7); the suggestions panel (T8); the dialogs, focus and messages (T9); the payments list and dates (T10).
-- **E2E (Playwright):** the flows in T11, which also check the card badges from T12.
+Unit tests only (project rules).
+- **Unit (xUnit, Core):** the suggestion rule, ties and the recompute property (T2); the percentage and its `Int128` safety (T2); payment rules, the stale check, the trip lock order and the settle-up result with a fake DAO (T3); the F5 formula with payments, Example 3 and the F4 lock call (T5); the card status table and the single owner-wide read (T12).
+- **Unit (xUnit, Api):** both controllers' result mapping, every code, the identical `404`s and the owner always taken from `ICurrentUser` (T6, T12).
+- **Front end (Angular Testing Library, mocked HTTP):** the view switch, tiles and plurals (T7); the suggestions panel (T8); the dialogs, focus and messages (T9); the payments list and dates (T10); the card badges (T12).
+- **Code review (not testable with unit tests):** T1 migration (checks, composite keys, `NO ACTION`, cascade); T4 checklist (the trip lock that prevents double recording, owner joins, order, usage source); T5 and T12 owner-filtered reads.
+- **Existing suites:** F1's integration and Playwright tests must still pass. Run them once at the end of F6.
 - **Worked examples:**
-  - **Example 1:** the suggestions Jo pays Sam 40.00 and Alex pays Sam 10.00. Named tests: T2, T6, T8, T11 (F6.AC1).
-  - **Example 2:** the balances are covered in F5. Named test: F5.T1 and F5.T4.
-  - **Example 3:** after Jo's payment, one suggestion (Alex pays Sam 10.00) is left. Named tests: T2 and T6 (F6.AC2), and T11 (F6.AC8).
+  - **Example 1:** the suggestions Jo pays Sam 40.00 and Alex pays Sam 10.00. Named tests: T2, T6, T8 (F6.AC1).
+  - **Example 2:** the balances are covered in F5. Named test: F5.T1.
+  - **Example 3:** after Jo's payment, one suggestion (Alex pays Sam 10.00) is left. Named tests: T2 (F6.AC2) and T5 (the balances).
 - **Manual checks:** phone-width layout of the tiles, the progress bar, the suggestion rows and the dialogs; keyboard-only through the view switch, Mark as paid, Cancel, and Delete payment; a screen reader reading the progress bar, the "Mark … as paid" names and the payments list; 4.5:1 contrast on the status text and the stale message; focus trapped in the dialogs and returned on close.
 
 ## Risks & mitigations
+- **No automated test covers the SQL or the race.** The trip lock is what stops two simultaneous Mark as paid calls from recording one suggestion twice (F6.R18). Without integration tests, it is verified only by the T4 review and a two-tab manual check. T4 is marked for human review. The money rules (suggestions, percentage, balances with payments) stay fully unit-tested in Core.
 - **F1–F5 are not built (blocker).** F6 starts only after F5's tasks T1–T7 exist, and F4's and F3's tasks as listed. If their names change, update F6's tasks.
 - **F4 changes (T5).** The trip lock is added to F4's approved add and delete paths. T5 is marked for human review. If you prefer not to change F4, the other option is to lock only the payment writes, which weakens F6.R18. You chose the lock.
 - **The suggestion rule is not always minimal.** product.md Goals ask for "as few payments as possible". R6, which the spec follows (F6.R4), can sometimes give one more payment. The plan keeps R6 as written, and the spec records that decision.
@@ -415,3 +390,5 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - 2026-10-21: _(Decided by you.)_ Trip-list balance status (settled up, payments to settle) is added in F6.T12, citing F5.R10.
 - 2026-10-21: The card status is now in the F6 spec as F6.R19–R20 and F6.AC17–AC21. T12 cites them. The plan is Draft until you approve it.
 - 2026-10-21: F5.AC13 settled as F5 only. You approved retiring the F5 card test in F6.T12, which replaces it with F6.AC17–AC21.
+- 2026-10-22: Test scope reduced to unit tests only, following the project rules change. T1 and T4 lose their integration tests and get review checklists and manual checks instead; T5's integration tests become Core unit tests (the F5 formula with payments, Example 3, the F4 lock call) plus a review; T6's endpoint tests become controller unit tests with fakes; T12's integration assertions become unit tests with a counting fake and a review; F6.T11 (Playwright end-to-end) is removed and its ID is not reused. F3 no longer has a payment stand-in test to replace. F1's existing integration and e2e tests stay and must pass. Status set back to Draft for re-approval.
+- 2026-10-22: Approve the plan with unit tests only? → Yes. Status set to Approved.

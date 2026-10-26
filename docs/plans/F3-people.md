@@ -1,13 +1,13 @@
 # F3 — People: Implementation plan
 
-_Status: Approved · Last updated: 2026-10-21 · Spec: [F3-people](../specs/features/F3-people.md) (Approved, last updated 2026-10-21)_
+_Status: Approved · Last updated: 2026-10-22 · Spec: [F3-people](../specs/features/F3-people.md) (Approved, last updated 2026-10-21)_
 
 ## Overview
-F3 lets a user add and remove the people on a trip. It adds the `people` table, three owner-checked endpoints, and a People panel on the trip page. Removal is refused for anyone who is in an expense or payment, both by the server and by the database. F4 and F6 create the tables that make that check meaningful, so F3 builds the check as an extension point and tests it with stand-ins. F3 is the third build step (F1 → F6).
+F3 lets a user add and remove the people on a trip. It adds the `people` table, three owner-checked endpoints, and a People panel on the trip page. Removal is refused for anyone who is in an expense or payment, both by the server and by the database. F4 and F6 create the tables that make that check meaningful, so F3 builds the check as an extension point and tests it with stand-ins. F3 is the third build step (F1 → F6). Tests are unit tests only (project rules); the SQL is checked in code review.
 
 ## Prerequisites
 - **Dependencies:**
-  - **F1: planned, not built.** `app/` is empty. F3 reuses F1's `users` table, `ICurrentUser`, the default-deny authorization policy, the unit of work, `PostgresFixture`, `FakeTimeProvider` usage, `AuthService`, the HTTP interceptor and `problem-mapper.ts`.
+  - **F1: planned, not built.** `app/` is empty. F3 reuses F1's `users` table, `ICurrentUser`, the default-deny authorization policy, the unit of work, `FakeTimeProvider` usage, `AuthService`, the HTTP interceptor and `problem-mapper.ts`.
   - **F2: planned, not built (blocking).** F3 cannot start until F2.T1–T4 and T7 exist. F3 reuses F2's `trips` table, `ITripDao.GetAsync(owner, id)` for the ownership check, the trip page at `/trips/:tripId`, the ON DELETE CASCADE convention (F2 plan, Contract changes) and the delete-dialog pattern.
   - F4, F5, F6: not started. F3 does not need them. F4 and F6 plug into F3's extension point (see Contract changes and Risks).
 - **Other features' code:** F3.T5 changes F2's trip-detail count. F3.T6 changes F2's trip page and its front-end tests. Both have their own tasks below.
@@ -21,7 +21,7 @@ F3 lets a user add and remove the people on a trip. It adds the `people` table, 
 | `TripExpenseTracker.Data` | `PersonDao.cs`; small change to `TripDao.cs` | Dapper queries with the owner in every `WHERE`; real `peopleCount` |
 | `TripExpenseTracker.Api` | `Controllers/PeopleController.cs`, request and response records | Three endpoints under `/api/trips/{tripId}/people` |
 | Angular (`app/src/web/src/app/people/`) | `people.service.ts`, `people-panel/`, `remove-person-dialog/`; edit `trips/trip-page/` | People panel on the trip page |
-| Tests | `TripExpenseTracker.Tests`, `TripExpenseTracker.IntegrationTests`, web specs, `app/e2e` | Unit, integration, component and Playwright |
+| Tests | `TripExpenseTracker.Tests`, web specs | Unit tests only (project rules): Core and controllers with fakes, Angular components with mocked HTTP. Database behaviour is checked in code review. |
 
 Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Ownership in the query.** Every `PersonDao` query joins `trips` and filters `owner_user_id = @owner`. A foreign trip and a missing trip look the same (F3.R10, F1.R9).
@@ -69,8 +69,8 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Files:** `app/src/api/TripExpenseTracker.Data/Migrations/0003_create_people.sql` (embedded resource).
 - **Change:** the table and indexes from Contract changes. The table has no credential or contact columns, because a person has no account (F3.R4). No upper limit on rows (F3.R9).
 - **Covers:** F3.R2 (stored length), F3.R3, F3.R4, F3.R5, F3.R9, F3.R11.
-- **Tests:** integration (Testcontainers): the migration runs on top of `0001` and `0002`. A name of 0 or 101 characters is rejected. `Sam` then `sam` in the same trip is rejected, but the same name in another trip is accepted. A person for a missing trip is rejected. `seq` grows with each insert. The table's columns are exactly `id`, `trip_id`, `name`, `added_at`, `seq` (no account data). Running the migrations twice changes nothing.
-- **Done when:** the tests pass on a fresh container.
+- **Tests:** none automated (unit tests only). **Review:** the length check; the unique index is on `(trip_id, lower(name))`, so the same name is allowed in another trip; `trip_id` references `trips(id) ON DELETE CASCADE`; `seq` is an identity column; the columns are exactly `id`, `trip_id`, `name`, `added_at`, `seq` (no account data).
+- **Done when:** the API starts in Development and DbUp applies `0003` to the local database without errors, and a reviewer has read the SQL.
 - _Needs human review: database migration._
 
 ### F3.T2 — Core: name rules, `PeopleService` and the in-use extension point
@@ -85,48 +85,44 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Done when:** the tests pass and `Core` has no reference to `Data`, Npgsql or ASP.NET.
 
 ### F3.T3 — Data: `PersonDao`
-- **Files:** `TripExpenseTracker.Data/PersonDao.cs`, DI registration; `IntegrationTests/Data/PersonDaoTests.cs`.
+- **Files:** `TripExpenseTracker.Data/PersonDao.cs`, DI registration.
 - **Change:** implement `IPersonDao` with Dapper.
   - List: join `trips`, filter `t.id = @trip AND t.owner_user_id = @owner`, `ORDER BY p.seq`.
   - Add: `INSERT ... SELECT ... FROM trips t WHERE t.id = @trip AND t.owner_user_id = @owner`. Zero rows inserted means "trip not found". A `23505` on `ux_people_trip_name` means duplicate.
   - Delete: `DELETE FROM people p USING trips t WHERE p.id = @person AND p.trip_id = t.id AND t.id = @trip AND t.owner_user_id = @owner`. Zero rows means not found. A `23503` means in use.
 - **Covers:** F3.R3, F3.R5, F3.R7, F3.R10, F3.R11, F3.AC1, F3.AC2, F3.AC10, F3.AC13 (DAO side), F3.AC14.
-- **Tests:** integration (Testcontainers):
-  - add `Sam` then `Alex`, the list is Sam, Alex (F3.AC1);
-  - add `Sam`, then `sam` and ` SAM ` (trimmed by the service): duplicates, nothing added (F3.AC2);
-  - **race:** 20 parallel adds of the same name leave exactly one person and the rest report duplicate;
-  - remove `Alex`, add `Alex` again: Alex is last, with a larger `seq` (F3.AC10); two adds at the identical timestamp keep insertion order;
-  - user B's add, list and delete against A's trip insert, return and remove nothing, with the same result as a missing trip; a person id from another trip is "not found" (F3.AC13);
-  - **in use, database backstop (F3.R7):** a test-only table `probe_expense_people (person_id uuid REFERENCES people(id))` is created in the test (DDL in the test, not a migration), a row references Sam, and deleting Sam returns "in use" and Sam stays;
-  - **cascade (F3.R11):** deleting the trip removes its people in the same statement, even when a probe child table with a `NO ACTION` reference to `people` also belongs to the trip (F3.AC14);
-  - a trip of 150 people lists in order (no limit, F3.R9).
-- **Done when:** the tests pass and a search of `PersonDao.cs` finds no query without the `trips` owner join and no string-concatenated SQL.
+- **Tests:** none automated (unit tests only; the DAO is SQL). **Code review checklist:**
+  - list, add and delete all join `trips` and filter `owner_user_id = @owner`, so user B can't list, add to or remove from A's trip, and a person id from another trip is "not found" (F3.AC13, F3.R10);
+  - the list orders by `seq`, so a re-added person is last (F3.AC1, F3.AC10);
+  - a `23505` on `ux_people_trip_name` maps to "duplicate", which also covers two simultaneous adds (F3.AC2);
+  - a `23503` on delete maps to "in use", the backstop for F3.R7;
+  - add inserts zero rows for a foreign or missing trip and reports "trip not found";
+  - no row limit or paging (F3.R9); parameters only, no string-concatenated SQL.
+- **Done when:** the build passes, the checklist is ticked by a reviewer, and a manual run (add, duplicate, remove, re-add, a second user) behaves as above.
+- _Needs human review: ownership in SQL (no automated test covers it)._
 
 ### F3.T4 — Api: `PeopleController`
-- **Files:** `TripExpenseTracker.Api/Controllers/PeopleController.cs`, `People/AddPersonRequest.cs`, `PersonResponse.cs`; DI wiring (no usage sources registered); `IntegrationTests/Api/PeopleEndpointTests.cs`.
+- **Files:** `TripExpenseTracker.Api/Controllers/PeopleController.cs`, `People/AddPersonRequest.cs`, `PersonResponse.cs`; DI wiring (no usage sources registered); `TripExpenseTracker.Tests/Api/PeopleControllerTests.cs`.
 - **Change:** the three endpoints in Contract changes. They rely on F1's default-deny policy with no `[AllowAnonymous]`. The owner comes only from `ICurrentUser`. Service results map to the status codes in Contract changes. A non-GUID id is the same `404` as a missing one.
 - **Covers:** F3.R1–R3, F3.R5–R10, F3.R11 (through the API), F3.AC1–AC10 (server side), F3.AC13, F3.AC14.
-- **Tests:** integration (`WebApplicationFactory` + Testcontainers, `FakeTimeProvider`, users registered through F1, trips created through F2):
-  - add `Sam` then `Alex`, `GET` lists Sam then Alex (F3.AC1);
-  - `sam` after `Sam` returns `409` `duplicate-person-name` and the list is unchanged (F3.AC2);
-  - 101 characters returns `400` `name_too_long`, 100 returns `201` (F3.AC3); `  Jo  ` is stored as `Jo` (F3.AC4); spaces only returns `400` `name_required` (F3.AC5);
-  - two simultaneous adds of the same name give one `201` and one `409`;
-  - remove an unused person returns `204` and the list no longer has them (F3.AC6);
-  - **in use, with stand-ins until F4 and F6 exist (F3.AC8, F3.AC9):** the test factory registers a stub `IPersonUsageSource` for each kind. The list shows `inExpense: true` for the person the expense stub reports, `inPayment: true` and `inExpense: false` for the person only the payment stub reports, and `DELETE` on either returns `409` `person-in-use` with the person still listed. A separate test uses the probe table from F3.T3 to prove the `409` also happens when no source reports the person (the race backstop);
-  - remove `Alex` then add `Alex`: Alex is last (F3.AC10);
-  - the last person on a trip can be removed and the list is then empty;
-  - user B gets a `404` with the same status, `type` and body as for a random missing trip, on list, add and delete, and nothing changes (F3.AC13, F3.R10); a `personId` from another trip returns the same `404`;
-  - deleting the trip through F2's endpoint, then `GET` people returns `404`, and the people rows are gone (F3.AC14);
-  - all three endpoints return `401` with no session; `PUT` and `PATCH` on a person return `405` or `404` (F3.R8).
+- **Tests:** unit (xUnit, the controller built directly with a fake `PeopleService` result source and a fake `ICurrentUser`, no web host or database):
+  - an added person returns `201` with the body shape (F3.AC1);
+  - `name_required` and `name_too_long` results map to `400` with those codes (F3.AC3, F3.AC5);
+  - the duplicate result maps to `409` `duplicate-person-name` (F3.AC2);
+  - removal returns `204` (F3.AC6); the "in use" result maps to `409` `person-in-use` (F3.AC8, F3.AC9);
+  - the list response passes `inExpense` and `inPayment` through unchanged (F3.AC8, F3.AC9);
+  - "not found" maps to the same `404` ProblemDetails as an id that isn't a GUID (F3.AC13, F3.R10);
+  - the owner id passed to the service is always the fake `ICurrentUser`'s; the request has no owner or usage fields.
+- **Review:** no `[AllowAnonymous]`, so F1's default-deny policy returns `401` when logged out; no `PUT` or `PATCH` actions exist (F3.R8).
 - **Done when:** the tests pass and no endpoint accepts an owner id or a usage flag from the client.
 - _Needs human review: authorization and ownership checks._
 
 ### F3.T5 — F2 code: real `peopleCount` in the trip detail (touches F2 code)
-- **Files:** `TripExpenseTracker.Data/TripDao.cs` (detail query), `IntegrationTests/Api/TripsEndpointTests.cs` (new test only).
-- **Change:** the detail query adds a count of the trip's `people` rows to `peopleCount`. `expenseCount` and `paymentCount` stay `0` until F4 and F6. No existing F2 assertion changes, because a trip with no people still reports `0`.
+- **Files:** `TripExpenseTracker.Data/TripDao.cs` (detail query).
+- **Change:** the detail query adds a count of the trip's `people` rows to `peopleCount`, inside the same owner-filtered query. `expenseCount` and `paymentCount` stay `0` until F4 and F6. No existing F2 assertion changes, because a trip with no people still reports `0`.
 - **Covers:** F2.R7 (counts), F3.R11 (the delete dialog shows the people that will be deleted).
-- **Tests:** integration: after adding 3 people, `GET /api/trips/{id}` returns `peopleCount: 3`; a trip with none returns `0`; another user's trip count is not reachable (`404`). The existing F2.T4 tests still pass unchanged.
-- **Done when:** the new test passes and the F2 test run is green with no edits to existing tests.
+- **Tests:** none automated (SQL only). **Review:** the count is part of the owner-filtered detail query. **Manual check:** after adding 3 people, the delete dialog shows "3 people".
+- **Done when:** the review and manual check pass, and the existing F2 tests still pass unchanged.
 
 ### F3.T6 — People panel on the trip page, read-only (touches F2 code)
 - **Files:** `app/src/web/src/app/people/people.service.ts`, `people/people-panel/people-panel.component.{ts,html,scss}`, spec; **F2 files changed:** `trips/trip-page/trip-page.component.{ts,html}` and its spec.
@@ -168,22 +164,8 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Tests:** front end: the remove control's accessible name is "Remove Sam"; the dialog shows the exact title, body and buttons; Cancel closes it and no `DELETE` is sent (F3.AC7); Escape closes it and focus returns to the control; focus stays inside while open; Remove sends `DELETE`, the row disappears and "Sam was removed from the trip." shows (F3.AC6); a `409` shows the in-use message, reloads the list and the row now has its tag (F3.AC8); a `404` on delete with a successful reload just refreshes the list; a `404` on the reload hands over to the trip page; a `500` shows the error in the dialog; removing the last person shows the empty state; there is no rename control (F3.AC11).
 - **Done when:** the tests pass and the dialog copy matches the spec exactly.
 
-### F3.T9 — End-to-end tests
-- **Files:** `app/e2e/people.spec.ts`.
-- **Change:** Playwright against the local stack and a non-shared database, as in F1.T15 and F2.T8. Each test registers its own user and creates its own trip.
-- **Covers:** F3.AC1, F3.AC2, F3.AC6, F3.AC7, F3.AC10, F3.AC11, F3.AC12, F3.AC13, F3.AC14.
-- **Tests:**
-  - a new trip shows the empty state and the add field (F3.AC12);
-  - add `Sam` and `Alex`, the list is in that order (F3.AC1); `sam` shows "sam is already on this trip." (F3.AC2);
-  - remove with Cancel keeps the person, remove with confirmation removes them (F3.AC7, F3.AC6); remove `Alex` and add `Alex` puts them last (F3.AC10);
-  - there is no rename control (F3.AC11);
-  - a second user opening the first user's trip URL sees "This trip no longer exists." and no people (F3.AC13);
-  - delete the trip and its people are gone: opening the old URL shows the not-found message (F3.AC14).
-  - The "In expenses" and "In payments" rows are not covered here, because expenses and payments do not exist yet. F4 and F6 add those end-to-end checks.
-- **Done when:** the suite passes headless with no state shared between tests.
-
 ### F3.T10 — Trip list: people count on each card (touches F2 code)
-- **Files:** `TripExpenseTracker.Data/TripDao.cs` (list query, F2.T3), `TripExpenseTracker.Api/Controllers/TripsController.cs` (list item, F2.T4), `app/src/web/src/app/trips/trip-list/` (card text, F2.T5), `trip-count-text.ts` (wording), specs; `IntegrationTests/Api/TripsEndpointTests.cs` (new assertions only).
+- **Files:** `TripExpenseTracker.Data/TripDao.cs` (list query, F2.T3), `TripExpenseTracker.Api/Controllers/TripsController.cs` (list item, F2.T4), `app/src/web/src/app/trips/trip-list/` (card text, F2.T5), `trip-count-text.ts` (wording), specs; `TripExpenseTracker.Tests/Api/TripsControllerTests.cs` (new assertions only).
 - **Change:**
   - The owner-filtered trip list query adds `peopleCount` as a correlated count of each trip's `people` rows, in the same query, so the list does not make one query per card.
   - `GET /api/trips` items gain `peopleCount`. Existing fields are unchanged.
@@ -193,61 +175,64 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Covers:** F3.R13, F3.R14, F3.AC15, F3.AC16, and F2.R5 (list order and ownership stay the same).
 - **Tests:**
   - unit: the wording: 0 gives "No people yet", 1 gives "1 person", 3 gives "3 people" (F3.AC15, F3.AC16);
-  - integration: a trip with three people lists `peopleCount` 3, and its People panel lists 3 (F3.AC15, F3.R14); a trip with none lists 0 (F3.AC16); another user's trips do not appear; the list order is unchanged; the list makes one query;
+  - unit (Api): the list item carries `peopleCount` from the service result;
   - front end: the card shows "3 people", "1 person" and "No people yet" for the three cases.
+- **Review:** the count is a correlated count inside the existing owner-filtered list query (one query, order unchanged). **Manual check:** a trip with three people shows "3 people" on its card and 3 in its People panel (F3.R14).
 - **Done when:** the tests pass, and the F2 list tests pass with only the new assertions added.
 - _Needs human review: adds a field to an F2 response and changes an F2 card (project rules: approved F2 code)._
 
 ## Traceability
 | Requirement | Tasks | Acceptance criteria | Tests |
 |---|---|---|---|
-| F3.R1 | T2, T3, T4, T7 | AC1 | T3 and T4 add then list; T7 form |
+| F3.R1 | T2, T4, T7 | AC1 | T2 add flow; T4 `201`; T7 form |
 | F3.R2 | T1, T2, T4, T7 | AC3, AC4, AC5 | T2 trim and length unit tests; T4 `400` codes; T7 field errors |
-| F3.R3 | T1, T3, T4, T7 | AC2 | T1 unique index; T3 parallel adds; T4 `409`; T7 message |
-| F3.R4 | T1 | none | T1 table has no account columns |
-| F3.R5 | T1, T3, T4 | AC1, AC10 | T3 `seq` order and re-add last; T4 re-add last |
+| F3.R3 | T1, T3, T4, T7 | AC2 | T1 and T3 review (unique index, `23505` mapping); T4 `409`; T7 message |
+| F3.R4 | T1 | none | T1 review (no account columns) |
+| F3.R5 | T1, T3 | AC1, AC10 | T3 review (`ORDER BY seq`); manual re-add check |
 | F3.R6 | T2, T4, T8 | AC6, AC7 | T4 `204`; T8 dialog, Cancel and Remove |
-| F3.R7 | T2, T3, T4, T6, T8 | AC8, AC9 | T2 sources and refusal; T3 foreign-key backstop; T4 stand-ins; T6 tags; T8 `409` message |
-| F3.R8 | T2, T4, T8 | AC11 | T4 no `PUT` or `PATCH`; T6 and T8 no rename control; T9 |
-| F3.R9 | T1, T3, T4, T7 | none | T3 150 people; T1 no row limit |
-| F3.R10 | T3, T4, T6 | AC13 | T3 owner join; T4 identical `404`; T6 trip-gone message |
-| F3.R11 | T1, T3, T4, T5 | AC14 | T3 cascade statement; T4 trip delete removes people; T5 count |
+| F3.R7 | T2, T3, T4, T6, T8 | AC8, AC9 | T2 sources and refusal; T3 review (`23503` backstop); T4 `409`; T6 tags; T8 `409` message |
+| F3.R8 | T2, T4, T8 | AC11 | T4 review (no `PUT` or `PATCH`); T6 and T8 no rename control |
+| F3.R9 | T1, T3 | none | T1 and T3 review (no row limit or paging) |
+| F3.R10 | T3, T4, T6 | AC13 | T3 review (owner join); T4 identical `404`; T6 trip-gone message |
+| F3.R11 | T1, T3, T5 | AC14 | T1 review (`ON DELETE CASCADE`); T5 count review and manual check |
 | F3.R12 | T6, T7 | AC12 | T6 panel, helper text, empty state; T7 add field |
-| F3.R13 | T10 | AC15, AC16 | T10 wording unit tests; card front-end tests; list `peopleCount` |
-| F3.R14 | T10 | AC15 | T10 list count matches the panel |
+| F3.R13 | T10 | AC15, AC16 | T10 wording unit tests; card front-end tests; `peopleCount` mapping |
+| F3.R14 | T10 | AC15 | T10 manual check that the card and panel counts match |
 
 | Acceptance criterion | Tasks | Test |
 |---|---|---|
-| F3.AC1 | T3, T4, T7, T9 | T3 and T4 Sam then Alex; T7; T9 |
-| F3.AC2 | T3, T4, T7, T9 | T3 and T4 `sam` after `Sam`; T7 copy; T9 |
-| F3.AC3 | T2, T4, T7 | T2 and T4 at 101 and 100; T7 |
-| F3.AC4 | T2, T4, T7 | T2 and T4 `  Jo  ` becomes `Jo`; T7 |
-| F3.AC5 | T2, T4, T7 | T2 and T4 spaces only; T7 "Enter a name." |
-| F3.AC6 | T4, T8, T9 | T4 `204` and list; T8 row disappears; T9 |
-| F3.AC7 | T8, T9 | T8 Cancel sends no `DELETE`; T9 |
-| F3.AC8 | T2, T3, T4, T6, T8 | T2 refusal; T3 backstop; T4 `409` with stand-in and probe table; T6 tag; T8 message |
-| F3.AC9 | T2, T4, T6 | T2 payment-only flag; T4 `inPayment` and `409`; T6 "In payments" |
-| F3.AC10 | T3, T4, T9 | T3 and T4 re-added Alex is last; T9 |
-| F3.AC11 | T4, T6, T8, T9 | T6 and T8 no rename control; T4 no `PUT`; T9 |
-| F3.AC12 | T6, T9 | T6 empty state and add field; T9 |
-| F3.AC13 | T3, T4, T6, T9 | T4 identical `404`; T6 message; T9 |
-| F3.AC14 | T3, T4, T9 | T3 cascade; T4 people gone after trip delete; T9 |
-| F3.AC15 | T10 | T10 "3 people" on the card and integration count |
-| F3.AC16 | T10 | T10 "No people yet" on the card and integration count of 0 |
+| F3.AC1 | T2, T4, T7 | T4 `201`; T7 new person last |
+| F3.AC2 | T3, T4, T7 | T3 review; T4 `409`; T7 copy |
+| F3.AC3 | T2, T4, T7 | T2 at 101 and 100; T4 `400`; T7 |
+| F3.AC4 | T2, T7 | T2 `  Jo  ` becomes `Jo`; T7 |
+| F3.AC5 | T2, T4, T7 | T2 spaces only; T4 `400`; T7 "Enter a name." |
+| F3.AC6 | T4, T8 | T4 `204`; T8 row disappears |
+| F3.AC7 | T8 | T8 Cancel sends no `DELETE` |
+| F3.AC8 | T2, T3, T4, T6, T8 | T2 refusal; T3 review; T4 `409`; T6 tag; T8 message |
+| F3.AC9 | T2, T4, T6 | T2 payment-only flag; T4 flags passed through; T6 "In payments" |
+| F3.AC10 | T3 | T3 review (`seq` order); manual re-add check |
+| F3.AC11 | T4, T6, T8 | T6 and T8 no rename control; T4 review |
+| F3.AC12 | T6 | T6 empty state and add field |
+| F3.AC13 | T3, T4, T6 | T3 review; T4 identical `404`; T6 message; manual check with two users |
+| F3.AC14 | T1, T3 | T1 review (cascade); manual check after a trip delete |
+| F3.AC15 | T10 | T10 "3 people" on the card |
+| F3.AC16 | T10 | T10 "No people yet" on the card |
 
 ## Test plan
-- **Unit (xUnit, Core):** name trimming, blank check and the 100-character limit (T2); usage flags from sources and the "in use" refusal (T2); the last person is removable (T2). The spec lists the capital-insensitive duplicate check and the added-time ordering as unit tests. They live in SQL (a unique index and `seq`), so they are tested against a real database in T3, which keeps one implementation of each rule.
-- **Integration (WebApplicationFactory + Testcontainers PostgreSQL):** migration (T1); DAO ownership, duplicate race, order, foreign-key backstop and cascade (T3); every endpoint, the identical `404`, the `401`s and the stand-in "in use" cases (T4); the trip-detail count (T5). Each test class gets its own database.
-- **Front end (Angular Testing Library):** panel states and tags (T6); add form (T7); remove dialog, messages and focus (T8).
-- **E2E (Playwright):** the flows in T9.
-- **Trip list card:** the people count wording and its match with the People panel (T10).
+Unit tests only (project rules).
+- **Unit (xUnit, Core):** name trimming, blank check and the 100-character limit; usage flags from sources and the "in use" refusal; the last person is removable (T2); the trip card wording (T10).
+- **Unit (xUnit, Api):** controller result-to-status mapping, the identical `404`, flags passed through, and the owner always taken from `ICurrentUser` (T4, T10).
+- **Front end (Angular Testing Library, mocked HTTP):** panel states and tags (T6); add form (T7); remove dialog, messages and focus (T8); card counts (T10).
+- **Code review (not testable with unit tests):** T1 migration SQL; T3 checklist (owner join on every query, `seq` order, `23505` and `23503` mappings); T5 and T10 counts inside the owner-filtered queries.
+- **Existing suites:** F1's integration and Playwright tests must still pass. Run them once at the end of F3.
 - **Worked examples:** none. The leftover-cent rule (product.md R3, example 2) belongs to F4, which depends on the order F3 guarantees.
 - **Manual checks:** phone-width layout of the panel and dialog; keyboard-only through add, remove and cancel; a screen reader reading the list count, "Remove {name}" buttons and tags; 4.5:1 contrast on text and tags; visible focus; focus trapped in the dialog and returned on close.
 
 ## Risks & mitigations
+- **No automated test covers the SQL.** Ownership, the unique name rule, the `seq` order, the foreign-key "in use" backstop and the cascade are verified only by review and a manual run. T3 is marked for human review.
 - **F1 and F2 are not built (blocker).** F3 starts only after F2.T1–T4 and T7 exist. The plan assumes the names in F1's and F2's plans. If they change, update F3's tasks.
 - **Last-person rule is not in product.md.** Removing the last person is allowed, as you decided on 2026-10-21. product.md does not state it. If it changes, T2, T4 and T8 each lose one test and gain a rule.
-- **F4 and F6 must plug in (their plans are not written).** Each must (a) implement `IPersonUsageSource` for its table and register it, (b) reference `people(id)` with the default `NO ACTION`, not `RESTRICT`, so the trip cascade still works, (c) use `UNIQUE (id, trip_id)` as a composite key if they want the database to enforce "same trip", (d) replace F3's stand-in "in use" tests with real ones and add the "In expenses" and "In payments" end-to-end checks, (e) make `expenseCount` and `paymentCount` real in the trip detail, and (f) order people by `seq` for the leftover-cent rule.
+- **F4 and F6 must plug in (their plans are not written).** Each must (a) implement `IPersonUsageSource` for its table and register it, (b) reference `people(id)` with the default `NO ACTION`, not `RESTRICT`, so the trip cascade still works, (c) use `UNIQUE (id, trip_id)` as a composite key if they want the database to enforce "same trip", (d) unit-test their own usage source, (e) make `expenseCount` and `paymentCount` real in the trip detail, and (f) order people by `seq` for the leftover-cent rule.
 - **`seq` goes beyond the spec's wording.** The spec says `added_at` orders people. The plan keeps `added_at` and orders by an identity column because two adds can share a timestamp, and F4's money split depends on one exact order.
 - **F2 list and card are touched in T10.** The trip list gains `peopleCount` and a card line. T10 is marked for human review, and it adds assertions without changing the F2 ones.
 - **F2 front-end tests are touched in T6.** The change only adds an HTTP stub for the people request. T6 is marked for human review for that reason. No F2 test is deleted, skipped or weakened.
@@ -259,7 +244,7 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 ## Out of scope
 - Renaming a person, person accounts, logins and invitations (spec, Out).
 - Expenses, payers, participants and the split (F4), balances (F5), suggested payments and payments (F6).
-- The real "in use" data and the "In expenses" and "In payments" end-to-end checks, which F4 and F6 add.
+- The real "in use" data, which F4 and F6 add.
 - A limit on the number of people (spec: none).
 - Expense count and total on the trip card (F4.R17–R18, F4.T11).
 
@@ -270,3 +255,5 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - 2026-10-21: _(Proposed.)_ "In use" is an `IPersonUsageSource` extension point in Core plus a `NO ACTION` foreign key from F4 and F6, with the foreign-key error mapped to the refusal. F3 tests it with stand-ins.
 - 2026-10-21: _(Proposed.)_ The remove dialog is its own component that reuses F2's dialog layout and pattern, rather than extracting a shared component, so no F2 code changes for it. Initial focus is on **Cancel**.
 - 2026-10-21: _(Proposed.)_ The trip card's people count is a correlated count in the F2 list query (F3.T10), so the list stays one query, and the wording lives in one pure function.
+- 2026-10-22: Test scope reduced to unit tests only, following the project rules change. T1, T3 and T5 lose their integration tests and get review checklists and manual checks instead; T4's endpoint tests become controller unit tests with fakes; T10's integration assertions become a unit mapping test and a manual check; F3.T9 (Playwright end-to-end) is removed and its ID is not reused. F1's existing integration and e2e tests stay and must pass. Status set back to Draft for re-approval.
+- 2026-10-22: Approve the plan with unit tests only? → Yes. Status set to Approved.

@@ -7,6 +7,61 @@ The sample app built in the L4 AI Developer Training Plan. A user registers, cre
 - **[Claude Code](https://docs.claude.com/en/docs/claude-code)** installed and on your `PATH` (`claude --version`).
 - **[Node.js](https://nodejs.org/)** (current LTS) on your `PATH` (`node --version`). The session-log hook runs with Node; without it no logs are written.
 - **Windows:** [Git for Windows](https://git-scm.com/download/win) (includes Git Bash, which Claude Code uses to run hook commands).
+- **[.NET SDK 10](https://dotnet.microsoft.com/download)** (current LTS) for the API (`dotnet --version`).
+- **[Docker Desktop](https://www.docker.com/products/docker-desktop/)**, running with Linux containers, for the local database and the integration tests (`docker info`).
+
+## Local setup
+
+Run every command from the repository root, the folder that contains `app/` and `docs/`.
+
+1. **Create your environment file.** Copy the example, then open `app/.env` and replace `POSTGRES_PASSWORD` with a password of your own. `app/.env` is git-ignored. Never commit it.
+
+   ```bash
+   cp app/.env.example app/.env
+   ```
+
+2. **Start the database.** This runs PostgreSQL 17 in Docker. The first run downloads the image. Data is kept in the `pgdata` volume between restarts.
+
+   ```bash
+   docker compose -f app/docker-compose.yml up -d
+   ```
+
+   Check that the `db` service shows `healthy`:
+
+   ```bash
+   docker compose -f app/docker-compose.yml ps
+   ```
+
+3. **Give the API its connection string.** It's stored with .NET user-secrets, in your user profile, outside the repo. Use the database name, user and password from your `app/.env`. The key must be exactly `ConnectionStrings:Default`.
+
+   ```bash
+   dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Database=trip_tracker_dev;Username=local_user;Password=<your app/.env password>" --project app/src/api/TripExpenseTracker.Api
+   ```
+
+   You don't need `dotnet user-secrets init`. The project's `UserSecretsId` is already committed. It's an ID, not a secret. To check the key name, run `dotnet user-secrets list --project app/src/api/TripExpenseTracker.Api` (this prints the value too, so don't share its output).
+
+4. **Run the API.** In Development it applies the database migrations on startup. If it stops with "ConnectionStrings:Default is not set", step 3 didn't take: check the key name.
+
+   ```bash
+   dotnet run --project app/src/api/TripExpenseTracker.Api
+   ```
+
+5. **Run the tests.** The integration tests start their own throwaway PostgreSQL containers through Testcontainers, so they never touch your local database. Docker Desktop only needs to be running.
+
+   ```bash
+   dotnet test app/src/api/TripExpenseTracker.sln
+   ```
+
+What to know:
+
+| Task | Command |
+|---|---|
+| Stop the database (data is kept) | `docker compose -f app/docker-compose.yml down` |
+| Delete the local data and start fresh | `docker compose -f app/docker-compose.yml down -v` |
+| Change the connection string | Run step 3 again with the new value |
+
+- **Where configuration comes from:** user-secrets on your machine; each test's own container in tests; the `ConnectionStrings__Default` environment variable anywhere else. Don't put a connection string in `appsettings*.json`, since those files are committed.
+- **Port 5432 already in use?** Change `POSTGRES_PORT` in `app/.env`, and use the same port in the connection string.
 
 ## Session logs
 
