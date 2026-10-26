@@ -1,6 +1,10 @@
 <app-header />
 <main>
   @if (trip(); as current) {
+    <a routerLink="/trips" class="trip-page__back">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+      Your trips
+    </a>
     <h1 class="trip-page__title">{{ current.name }}</h1>
     <button
       type="button"

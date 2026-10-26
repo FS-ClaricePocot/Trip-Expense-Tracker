@@ -44,6 +44,12 @@ main {
   overflow-wrap: anywhere;
 }
 
+.trip-card__people {
+  margin: 8px 0 0;
+  padding: 0 24px;
+  color: var(--color-text-muted);
+}
+
 .trip-card__name {
   color: var(--color-text);
   text-decoration: none;

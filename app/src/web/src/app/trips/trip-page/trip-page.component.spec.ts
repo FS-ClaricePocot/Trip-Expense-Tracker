@@ -221,4 +221,15 @@ describe('TripPageComponent', () => {
     expect(within(dialog).getByText('0 people')).toBeTruthy();
     expect(within(dialog).queryByText('1 person')).toBeNull();
   });
+
+  it('shows a "Your trips" back link above the title on a loaded trip (mockup)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await settle(harness);
+
+    const link = screen.getByRole('link', { name: 'Your trips' });
+
+    expect(link.getAttribute('href')).toBe('/trips');
+    expect(link.compareDocumentPosition(screen.getByRole('heading', { name: 'Paris 2026' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

@@ -78,6 +78,18 @@ describe('TripListComponent', () => {
     await waitFor(() => expect(screen.getByText('No people yet')).toBeTruthy());
   });
 
+  it('lines the people count up with the trip name on the card (mockup)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([{ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 3 }]);
+
+    await waitFor(() => expect(screen.getByText('3 people')).toBeTruthy());
+    const count = screen.getByText('3 people');
+    const title = screen.getByRole('heading', { name: 'Lisbon' });
+
+    expect(getComputedStyle(count).marginLeft).toBe('0px');
+    expect(getComputedStyle(count).paddingLeft).toBe(getComputedStyle(title).paddingLeft);
+  });
+
   it('shows the generic error when the list request fails (F2 States)', async () => {
     const http = await renderList();
     http.expectOne('/api/trips').flush(null, { status: 500, statusText: 'Server Error' });

@@ -34,3 +34,15 @@ a {
   display: inline-flex;
   align-items: center;
 }
+
+.trip-page__back {
+  gap: 4px;
+  color: #344054;
+  font-size: 1rem;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent-soft);
+    outline-offset: 2px;
+  }
+}
