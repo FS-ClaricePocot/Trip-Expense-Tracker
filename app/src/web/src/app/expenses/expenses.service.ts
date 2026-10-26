@@ -40,4 +40,13 @@ export class ExpensesService {
   add(tripId: string, expense: NewExpense): Promise<Expense> {
     return firstValueFrom(this.http.post<Expense>(`/api/trips/${encodeURIComponent(tripId)}/expenses`, expense));
   }
+
+  /** DELETE /api/trips/{tripId}/expenses/{expenseId} (F4.R9). The server returns 204. */
+  delete(tripId: string, expenseId: string): Promise<void> {
+    return firstValueFrom(
+      this.http.delete<void>(
+        `/api/trips/${encodeURIComponent(tripId)}/expenses/${encodeURIComponent(expenseId)}`,
+      ),
+    );
+  }
 }

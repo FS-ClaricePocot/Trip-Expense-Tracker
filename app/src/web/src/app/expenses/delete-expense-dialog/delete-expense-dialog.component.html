@@ -1,0 +1,11 @@
+<div class="delete-expense">
+  <h2 id="delete-expense-title" class="delete-expense__title">Delete {{ data.description }}?</h2>
+  <p id="delete-expense-body" class="delete-expense__body">This removes the expense and changes the balances. You can't undo this.</p>
+  @if (errorMessage(); as message) {
+    <p class="delete-expense__error" role="alert">{{ message }}</p>
+  }
+  <div class="delete-expense__actions">
+    <button type="button" class="delete-expense__cancel" (click)="cancel()">Cancel</button>
+    <button type="button" class="delete-expense__confirm" [disabled]="submitting()" (click)="confirm()">Delete expense</button>
+  </div>
+</div>

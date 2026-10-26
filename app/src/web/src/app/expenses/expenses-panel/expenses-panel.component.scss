@@ -38,6 +38,13 @@
     color: #0b4a6f;
   }
 
+  &__notice {
+    min-height: 1.25em;
+    margin: 8px 0 0;
+    color: #344054;
+    font-size: 0.875rem;
+  }
+
   &__empty {
     margin: 12px 0 0;
     color: #475467;
@@ -93,5 +100,54 @@
     color: #1d2939;
     font-weight: 600;
     white-space: nowrap;
+  }
+
+  /* The row's main area opens the shares dialog (F4.R10a). Reset button styling, keep it keyboard-reachable. */
+  &__select {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    min-height: 24px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid #0b4a6f;
+      outline-offset: 2px;
+    }
+  }
+
+  /* Trash control, at least 24x24 CSS pixels (WCAG 2.5.8) (F4.R9). */
+  &__delete {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: #475467;
+    cursor: pointer;
+
+    &:hover {
+      background: #fef3f2;
+      color: #7a1b13;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #0b4a6f;
+      outline-offset: 2px;
+    }
   }
 }
