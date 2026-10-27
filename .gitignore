@@ -1,5 +1,8 @@
 # Session logs and hook errors (machine-specific; not shared for now)
 docs/activities-outputs/session-logs/
 
+# Hand-off files between skills (test report); regenerated on every run
+.reports/
+
 # Local OpenRouter launcher (not shared for now)
 claude-openrouter.ps1

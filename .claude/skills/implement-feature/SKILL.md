@@ -72,11 +72,10 @@ If a check fails, treat the task as **Blocked** (step 5) with that finding as th
 ## 6. Next task, or finish
 
 - After a commit, ask whether to continue with the next task. One task per confirmation: the user stays in control, and a run can stop cleanly at any point.
-- **When every task in the plan is committed,** run the feature's full checks once, quietly, keeping just the tails:
-  - `dotnet test app/src/api/TripExpenseTracker.sln --nologo -v q 2>&1 | tail -n 30` (unit tests plus F1's existing integration tests; Docker must be running)
-  - `npx ng test --watch=false --browsers=ChromeHeadless 2>&1 | tail -n 20` in `app/src/web`
-  - F1's existing Playwright suite in `app/e2e`, so the earlier features still work end to end. Don't add to it.
-  Then remind the user of the plan's manual checks (the review checklists and two-user ownership check). Report the results, and that the feature is complete.
+- **When every task in the plan is committed,** run `/run-tests`. It runs all unit tests in a forked context and writes `.reports/test-report.md`. Show the user its result line and counts.
+  - On FAIL: show the failing tests and treat them as a Blocked task (step 5). Don't open a PR.
+  - On PASS: remind the user of F1's existing integration and Playwright suites (`CLAUDE.md`, Commands) and the plan's manual checks (the review checklists and two-user ownership check).
+- Then the feature is complete. Remind the user to open the PR into `develop` themselves with `gh pr create --base develop`, with a short summary of the changes and the test summary from `.reports/test-report.md` in the description. Don't push or open the PR from this skill.
 
 ## Never
 
