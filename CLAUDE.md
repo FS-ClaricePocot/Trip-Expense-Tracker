@@ -46,6 +46,18 @@ docs/       specs, plans, rules, design (existing)
 
 Feature folders: `auth/`, `trips/`, `people/`, `expenses/`, `balances/`, `settle-up/`, plus `core/` for the HTTP client (with credentials), the auth guard that redirects to login (F1.R15), and error handling.
 
+## Commands
+
+Unit tests, run from the repository root. `/run-tests` and the `tests` job in `.github/workflows/pr-checks.yml` use these.
+
+- **Back end:** `dotnet test app/src/api/TripExpenseTracker.Tests --nologo -v q`
+  - Summary line: `Passed!  - Failed: 0, Passed: N, Skipped: 0, Total: N, …` or `Failed!  - …`. Failing tests are lines starting `  Failed <TestName>`.
+  - `error MSB3027` ("file is locked by … TripExpenseTracker.Api") means the API is running. Stop it and run again.
+- **Front end:** `npx ng test --watch=false --browsers=ChromeHeadless` in `app/src/web`
+  - Summary line: `TOTAL: N SUCCESS` or `TOTAL: F FAILED, P SUCCESS`. Failing tests are lines ending in `FAILED`. The output has colour codes: strip them with `sed 's/\x1b\[[0-9;]*[A-Za-z]//g'`.
+
+F1's existing integration tests (`TripExpenseTracker.IntegrationTests`, need Docker) and Playwright suite (`app/e2e`) are not unit tests. Run them by hand before merging a feature.
+
 ## Architecture rules
 
 - **Same origin:** the Angular dev server proxies `/api` to the .NET API (`proxy.conf.json`), so there is no CORS and the cookie stays same-site. In production, ASP.NET serves the built Angular files and falls back to `index.html`.

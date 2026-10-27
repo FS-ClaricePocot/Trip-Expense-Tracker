@@ -1,0 +1,123 @@
+# Checks on every PR into develop: the unit tests, and an AI review on Haiku through OpenRouter.
+#
+# tests:  runs the unit test commands from CLAUDE.md (Commands).
+# review: the workflow saves the diff and the PR's title and commits to files, Haiku follows
+#         .claude/skills/review-pr/SKILL.md and writes review.md using file tools only, and the
+#         workflow posts it. Every PR gets a verdict: if review.md is missing or unreadable, the
+#         workflow posts NOT OK itself. The check fails on NOT OK.
+#
+# The review job checks out the target branch, not the PR, so a PR can't change the checklist
+# it is reviewed against.
+#
+# Needs the repository secret OPENROUTER_API_KEY and the Claude GitHub app installed on the repo.
+# This file must be identical on the default branch (develop), or the Claude action skips itself.
+# Runs again on every push to the PR, so branch protection always has a fresh result.
+
+name: PR checks
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/src/web/package-lock.json
+
+      - name: Back-end unit tests
+        run: dotnet test app/src/api/TripExpenseTracker.Tests --nologo -v q
+
+      - name: Install front-end packages
+        working-directory: app/src/web
+        run: npm ci
+
+      - name: Front-end unit tests
+        working-directory: app/src/web
+        run: |
+          # Ubuntu 24 blocks Chrome's sandbox by default; allow it for the headless test browser.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          npx ng test --watch=false --browsers=ChromeHeadless
+
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.base_ref }}
+          fetch-depth: 1
+
+      - name: Save the diff and the PR's title and commits
+        run: |
+          gh pr diff "$PR" --repo "$REPO" > pr.diff
+          gh pr view "$PR" --repo "$REPO" --json title,commits \
+            --jq '"Title: " + .title, "Commits:", (.commits[] | "- " + .messageHeadline)' > pr-info.md
+
+      - name: Review the PR
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: https://openrouter.ai/api
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.OPENROUTER_API_KEY }}
+        with:
+          anthropic_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+          prompt: |
+            Review a pull request. Read .claude/skills/review-pr/SKILL.md and follow it exactly.
+            The diff is in pr.diff and the title and commits are in pr-info.md.
+            Write your review to review.md, then stop. Do not post anything and run no commands.
+          claude_args: |
+            --model haiku
+            --max-turns 15
+            --allowedTools "Read,Grep,Glob,Write"
+
+      - name: Post the review and check the verdict
+        if: always()
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          post_no_verdict() {
+            gh pr comment "$PR" --repo "$REPO" --body "$(printf '## Verdict: NOT OK\n\n%s\n\n%s' \
+              "No verdict: $1" "Re-run the job, or review this PR yourself. Log: $RUN_URL")"
+            echo "::error::$1"
+            exit 1
+          }
+
+          [ -s review.md ] || post_no_verdict "the AI reviewer did not write a review. It may have failed, run out of turns, or hit the OpenRouter credit limit."
+
+          if grep -q '^## Verdict: NOT OK' review.md; then verdict=fail
+          elif grep -q '^## Verdict: OK' review.md; then verdict=pass
+          else post_no_verdict "the AI reviewer wrote a review without a readable verdict line."
+          fi
+
+          gh pr comment "$PR" --repo "$REPO" --body-file review.md
+          if [ "$verdict" = fail ]; then echo "::error::Reviewer verdict: NOT OK"; exit 1; fi
+          echo "Reviewer verdict: OK"
