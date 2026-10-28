@@ -76,8 +76,8 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Done when:** the tests pass and `Core` has no reference to `Data`, Npgsql or ASP.NET. No `double` or `float` appears in these files.
 
 ### F5.T2 — Data: `BalanceDao`
-- **Files:** `TripExpenseTracker.Data/BalanceDao.cs`, DI registration.
-- **Change:** one owner-checked read per request. It returns the trip's people in `seq` order, and its expenses with payer, amount, and participants with their `seq`. Every query joins `trips` and filters `owner_user_id = @owner`. The query shape is shared with F4's list where it fits, so the participant ordering is defined once.
+- **Files:** `TripExpenseTracker.Core/Balances/IBalanceDao.cs` (interface and row types, moved here from F5.T3), `TripExpenseTracker.Data/BalanceDao.cs`, DI registration.
+- **Change:** one owner-checked read per request, behind `IBalanceDao`. It returns the trip's people in `seq` order, and its expenses with payer, amount, and participants with their `seq`. Every query joins `trips` and filters `owner_user_id = @owner`. The query shape is shared with F4's list where it fits, so the participant ordering is defined once.
 - **Covers:** F5.R11, F5.R12 (DAO side), F5.AC12.
 - **Tests:** none automated (unit tests only; the DAO is SQL). **Code review checklist:**
   - every query joins `trips` and filters `owner_user_id = @owner`, so user B's read of A's trip returns the same as a missing trip (F5.AC12);
@@ -88,13 +88,13 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - _Needs human review: ownership in SQL (no automated test covers it)._
 
 ### F5.T3 — Core: `BalanceService`
-- **Files:** `TripExpenseTracker.Core/Balances/IBalanceDao.cs`, `BalanceService.cs`, `BalanceResults.cs`; unit tests.
+- **Files:** `TripExpenseTracker.Core/Balances/BalanceService.cs`, `BalanceResults.cs`; unit tests. (`IBalanceDao` is defined in F5.T2.)
 - **Change:** `GetBalancesAsync(owner, tripId)` reads through `IBalanceDao`, runs T1, and returns the check result. `GetSummaryAsync(owner, tripId)` returns the T1 summary. A missing or foreign trip gives "not found" from both. Nothing is cached (Contract changes).
 - **Covers:** F5.R7, F5.R11, F5.R12, F5.AC7 (service side), F5.AC12 (service side).
 - **Tests:** unit with a fake DAO:
   - adding then deleting an expense, read through the service twice, returns the earlier balances (F5.AC7);
   - a foreign or missing trip returns "not found" for both calls;
-  - a forced inconsistency (a fake DAO returns data that does not sum to `0`) returns `balances_inconsistent`, not the balances (F5.AC16).
+  - a failed zero-sum check returns `balances_inconsistent`, not the balances (F5.AC16). The failing check itself is tested in F5.T1 (`BalanceCheck.Verify`). Here, the service's mapping of a failed check is tested through a seam: the check is injected (for example, a delegate in the constructor, defaulting to `BalanceCheck.Verify`), so a test can force a failure. The calculator always produces zero-sum data, so a fake DAO cannot trigger this path.
 - **Done when:** the tests pass.
 
 ### F5.T4 — Api: `BalancesController`
