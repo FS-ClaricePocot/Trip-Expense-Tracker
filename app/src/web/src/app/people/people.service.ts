@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Subject, firstValueFrom, tap } from 'rxjs';
 
 /**
  * One item of GET /api/trips/{tripId}/people (F3.R12), in the order added.
@@ -17,6 +17,10 @@ export interface Person {
 @Injectable({ providedIn: 'root' })
 export class PeopleService {
   private readonly http = inject(HttpClient);
+  private readonly changed = new Subject<string>();
+
+  /** Emits the trip id after this app adds or removes a person there, so the open Expenses form reloads its people (F4.AC10). */
+  readonly peopleChanged = this.changed.asObservable();
 
   list(tripId: string): Promise<Person[]> {
     return firstValueFrom(this.http.get<Person[]>(`/api/trips/${encodeURIComponent(tripId)}/people`));
@@ -24,13 +28,19 @@ export class PeopleService {
 
   /** POST /api/trips/{tripId}/people (F3.R1). The server returns the added person (201). */
   add(tripId: string, name: string): Promise<Person> {
-    return firstValueFrom(this.http.post<Person>(`/api/trips/${encodeURIComponent(tripId)}/people`, { name }));
+    return firstValueFrom(
+      this.http
+        .post<Person>(`/api/trips/${encodeURIComponent(tripId)}/people`, { name })
+        .pipe(tap(() => this.changed.next(tripId))),
+    );
   }
 
   /** DELETE /api/trips/{tripId}/people/{personId} (F3.R6). 204 on success; 409 when in use (F3.R7). */
   remove(tripId: string, personId: string): Promise<void> {
     return firstValueFrom(
-      this.http.delete<void>(`/api/trips/${encodeURIComponent(tripId)}/people/${encodeURIComponent(personId)}`),
+      this.http
+        .delete<void>(`/api/trips/${encodeURIComponent(tripId)}/people/${encodeURIComponent(personId)}`)
+        .pipe(tap(() => this.changed.next(tripId))),
     );
   }
 }
