@@ -50,6 +50,8 @@ builder.Services.AddScoped<TripService>();
 builder.Services.AddScoped<IPersonUsageSource, ExpenseUsageSource>();
 builder.Services.AddScoped<PeopleService>();
 builder.Services.AddScoped<ExpenseService>();
+// Balances are calculated on each request (F5.R7). The service only reads, and logs no amounts or names (F5.AC16).
+builder.Services.AddScoped<BalanceService>();
 
 // Auth. AuthTransaction shares the scoped unit of work with the DAOs, so register and its session insert share one transaction (F1.R7).
 builder.Services.AddScoped<IAuthTransaction>(sp =>

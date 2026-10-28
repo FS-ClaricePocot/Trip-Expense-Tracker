@@ -10,14 +10,17 @@ public enum BalanceServiceFailure
     BalancesInconsistent,
 }
 
-/// <summary>The balances in <c>seq</c> order, or the reason they were refused. Never both.</summary>
-public sealed record BalanceListResult(IReadOnlyList<PersonBalance>? Balances, BalanceServiceFailure? Failure)
+/// <summary>
+/// The balances in <c>seq</c> order, or the reason they were refused. Never both. <c>PeopleCount</c> is set only for
+/// <see cref="BalanceServiceFailure.BalancesInconsistent"/>, so the API can log the trip id and person count (F5.AC16).
+/// </summary>
+public sealed record BalanceListResult(IReadOnlyList<PersonBalance>? Balances, BalanceServiceFailure? Failure, int? PeopleCount = null)
 {
     public bool Succeeded => Balances is not null;
 
     public static BalanceListResult Found(IReadOnlyList<PersonBalance> balances) => new(balances, null);
 
-    public static BalanceListResult Refused(BalanceServiceFailure failure) => new(null, failure);
+    public static BalanceListResult Refused(BalanceServiceFailure failure, int? peopleCount = null) => new(null, failure, peopleCount);
 }
 
 /// <summary>The trip page tiles, or the reason they were refused

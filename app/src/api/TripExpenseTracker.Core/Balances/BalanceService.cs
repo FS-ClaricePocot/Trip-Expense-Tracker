@@ -34,7 +34,7 @@ public sealed class BalanceService
         var balances = BalanceCalculator.Calculate(snapshot.People, snapshot.Expenses, []);
         if (_verify(balances) is not null)
         {
-            return BalanceListResult.Refused(BalanceServiceFailure.BalancesInconsistent);
+            return BalanceListResult.Refused(BalanceServiceFailure.BalancesInconsistent, snapshot.People.Count);
         }
 
         return BalanceListResult.Found(balances);
