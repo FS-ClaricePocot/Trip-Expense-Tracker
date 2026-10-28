@@ -48,7 +48,7 @@ Feature folders: `auth/`, `trips/`, `people/`, `expenses/`, `balances/`, `settle
 
 ## Commands
 
-Unit tests, run from the repository root. `/run-tests` and the `tests` job in `.github/workflows/pr-checks.yml` use these.
+Unit tests, run from the repository root. The `tests` job in `.github/workflows/pr-checks.yml` runs these on every pull request.
 
 - **Back end:** `dotnet test app/src/api/TripExpenseTracker.Tests --nologo -v q`
   - Summary line: `Passed!  - Failed: 0, Passed: N, Skipped: 0, Total: N, …` or `Failed!  - …`. Failing tests are lines starting `  Failed <TestName>`.
