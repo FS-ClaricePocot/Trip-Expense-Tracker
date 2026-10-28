@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BalancesPanelComponent } from '../../balances/balances-panel/balances-panel.component';
+import { SummaryTilesComponent } from '../../balances/summary-tiles/summary-tiles.component';
 import { GENERIC_ERROR_MESSAGE, TRIP_NOT_FOUND_MESSAGE } from '../../core/errors/problem-mapper';
 import { HeaderComponent } from '../../core/header/header.component';
 import { ExpensesPanelComponent } from '../../expenses/expenses-panel/expenses-panel.component';
@@ -17,7 +18,14 @@ import { TRIP_DELETED_STATE, TripDetail, TripsService } from '../trips.service';
  */
 @Component({
   selector: 'app-trip-page',
-  imports: [HeaderComponent, RouterLink, PeoplePanelComponent, ExpensesPanelComponent, BalancesPanelComponent],
+  imports: [
+    HeaderComponent,
+    RouterLink,
+    SummaryTilesComponent,
+    PeoplePanelComponent,
+    ExpensesPanelComponent,
+    BalancesPanelComponent,
+  ],
   templateUrl: './trip-page.component.html',
   styleUrl: './trip-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

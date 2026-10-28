@@ -14,6 +14,7 @@
     >
       Delete
     </button>
+    <app-summary-tiles [tripId]="current.id" (tripGone)="onTripGone()" />
     <app-people-panel [tripId]="current.id" (tripGone)="onTripGone()" (countChanged)="onPeopleCountChanged($event)" />
     <app-expenses-panel [tripId]="current.id" (tripGone)="onTripGone()" />
     <app-balances-panel [tripId]="current.id" (tripGone)="onTripGone()" />

@@ -1,0 +1,18 @@
+<section class="summary-tiles" aria-label="Trip summary">
+  @if (loading()) {
+    <p>Loading balances…</p>
+  } @else if (failed()) {
+    <p role="alert">{{ genericMessage }}</p>
+  } @else if (summary(); as current) {
+    <div class="summary-tiles__grid">
+      <h2 class="summary-tiles__tile">
+        <span class="summary-tiles__label">Total spent</span>
+        <span class="summary-tiles__amount">{{ format(current.totalSpentCents) }}</span>
+      </h2>
+      <h2 class="summary-tiles__tile">
+        <span class="summary-tiles__label">Left to settle</span>
+        <span class="summary-tiles__amount">{{ format(current.leftToSettleCents) }}</span>
+      </h2>
+    </div>
+  }
+</section>

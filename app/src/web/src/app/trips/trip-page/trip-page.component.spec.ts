@@ -42,6 +42,10 @@ async function settle(harness: RouterTestingHarness): Promise<void> {
   TestBed.inject(HttpTestingController)
     .match('/api/trips/trip-1/balances')
     .forEach((request) => request.flush({ totalCents: 0, people: [] }));
+  // F5.T6 stub: the summary tiles ask for the trip's summary too. Answer it with zeros.
+  TestBed.inject(HttpTestingController)
+    .match('/api/trips/trip-1/summary')
+    .forEach((request) => request.flush({ totalSpentCents: 0, leftToSettleCents: 0 }));
 }
 
 /** Focuses the Delete button, as a click would, then opens the dialog and returns it. */

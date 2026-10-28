@@ -1,0 +1,36 @@
+/* Tiles follow the trip page mockup, matching the panel cards below them. */
+.summary-tiles {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 560px;
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  &__tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 16px 20px;
+    border: 1px solid #e4e7ec;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(16 24 40 / 6%);
+  }
+
+  &__label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475467;
+  }
+
+  &__amount {
+    font-size: 24px;
+    font-weight: 600;
+    color: #0b4a6f;
+  }
+}
