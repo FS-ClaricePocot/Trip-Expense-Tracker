@@ -14,10 +14,13 @@
     >
       Delete
     </button>
-    <app-summary-tiles [tripId]="current.id" (tripGone)="onTripGone()" />
-    <app-people-panel [tripId]="current.id" (tripGone)="onTripGone()" (countChanged)="onPeopleCountChanged($event)" />
-    <app-expenses-panel [tripId]="current.id" (tripGone)="onTripGone()" />
-    <app-balances-panel [tripId]="current.id" (tripGone)="onTripGone()" />
+    <!-- DOM order is the reading and tab order: tiles, Expenses, Balances, then People (F5.R8, F5.R5). -->
+    <div class="trip-page__layout">
+      <app-summary-tiles [tripId]="current.id" (tripGone)="onTripGone()" />
+      <app-expenses-panel [tripId]="current.id" (tripGone)="onTripGone()" />
+      <app-balances-panel [tripId]="current.id" (tripGone)="onTripGone()" />
+      <app-people-panel [tripId]="current.id" (tripGone)="onTripGone()" (countChanged)="onPeopleCountChanged($event)" />
+    </div>
   } @else if (notFound()) {
     <p role="alert">{{ notFoundMessage }}</p>
     <p><a routerLink="/trips">Your trips</a></p>

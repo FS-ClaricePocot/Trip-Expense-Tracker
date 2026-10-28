@@ -3,6 +3,28 @@ main {
   gap: 16px;
   padding: 24px;
   justify-items: start;
+  /* The columns below follow the width this page gets, so a narrow view stacks (F5.R8, F5.R5). */
+  container-type: inline-size;
+}
+
+/* One column on a phone: tiles, Expenses, Balances, then People. */
+.trip-page__layout {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Two columns when there is room: tiles across the top, Expenses and Balances side by side, People under Expenses. */
+@container (min-width: 720px) {
+  .trip-page__layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trip-page__layout > app-summary-tiles {
+    grid-column: 1 / -1;
+  }
 }
 
 .trip-page__title {

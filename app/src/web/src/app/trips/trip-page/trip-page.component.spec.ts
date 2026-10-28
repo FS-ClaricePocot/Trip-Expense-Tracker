@@ -258,4 +258,47 @@ describe('TripPageComponent', () => {
     expect(link.getAttribute('href')).toBe('/trips');
     expect(link.compareDocumentPosition(screen.getByRole('heading', { name: 'Paris 2026' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it('puts the tiles, Expenses, Balances and then People in one layout, in reading and tab order (F5.R8, F5.R5)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await settle(harness);
+
+    await settle(harness);
+    const layout = document.querySelector('.trip-page__layout') as HTMLElement;
+    const order = Array.from(layout.children).map((child) => child.tagName);
+
+    expect(screen.getByText('Total spent')).toBeTruthy();
+    expect(order).toEqual(['APP-SUMMARY-TILES', 'APP-EXPENSES-PANEL', 'APP-BALANCES-PANEL', 'APP-PEOPLE-PANEL']);
+  });
+
+  it('shows the panels in two columns at desktop width (F5.R5, F5.R8)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await settle(harness);
+
+    const host = document.querySelector('app-trip-page') as HTMLElement;
+    host.style.display = 'block';
+    host.style.width = '960px';
+    await settle(harness);
+
+    const layout = document.querySelector('.trip-page__layout') as HTMLElement;
+    expect(getComputedStyle(layout).gridTemplateColumns.split(' ').length).toBe(2);
+  });
+
+  it('stacks the panels in one column at phone width with no horizontal scroll (F5.R5, F5.R8)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await settle(harness);
+
+    const host = document.querySelector('app-trip-page') as HTMLElement;
+    host.style.display = 'block';
+    host.style.width = '360px';
+    await settle(harness);
+
+    const layout = document.querySelector('.trip-page__layout') as HTMLElement;
+    const main = document.querySelector('app-trip-page main') as HTMLElement;
+    expect(getComputedStyle(layout).gridTemplateColumns.split(' ').length).toBe(1);
+    expect(main.scrollWidth).toBeLessThanOrEqual(main.clientWidth);
+  });
 });
