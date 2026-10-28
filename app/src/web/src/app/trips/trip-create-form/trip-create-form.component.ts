@@ -109,6 +109,7 @@ export class TripCreateFormComponent {
   }
 
   protected submit(): void {
+    console.log('Create Trip');
     if (this.submitting() || this.limited()) {
       return;
     }
