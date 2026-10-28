@@ -33,6 +33,7 @@ public class BalanceServiceTests
         _balances.Snapshot = new BalanceSnapshot(People, []);
     }
 
+    /// <summary>Adding an expense changes the balances, and deleting it restores the earlier ones (F5.AC7).</summary>
     [Fact]
     public async Task Adding_then_deleting_an_expense_returns_the_earlier_balances()
     {
