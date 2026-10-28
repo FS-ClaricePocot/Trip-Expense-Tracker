@@ -1,36 +1,49 @@
-/* Tiles follow the trip page mockup, matching the panel cards below them. */
+/* Tiles follow the trip page mockup: a blue Total spent card and a peach Left to settle card. */
 .summary-tiles {
   box-sizing: border-box;
   width: 100%;
-  max-width: 560px;
 
+  /* Wraps to one tile per row on a phone; side by side with Total spent wider when there is room. */
   &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
   }
 
   &__tile {
     display: flex;
+    flex: 1 1 220px;
     flex-direction: column;
-    gap: 4px;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 140px;
     margin: 0;
-    padding: 16px 20px;
-    border: 1px solid #e4e7ec;
+    padding: 24px;
     border-radius: 16px;
-    background: #fff;
-    box-shadow: 0 1px 2px rgb(16 24 40 / 6%);
+    box-sizing: border-box;
+  }
+
+  &__tile--total {
+    flex-grow: 1.6;
+    background: #0369a1;
+    color: #fff;
+  }
+
+  &__tile--settle {
+    flex-grow: 1;
+    background: #fef0d9;
+    color: #7a2e0e;
   }
 
   &__label {
-    font-size: 0.875rem;
+    font-size: 1rem;
     font-weight: 500;
-    color: #475467;
   }
 
   &__amount {
-    font-size: 24px;
-    font-weight: 600;
-    color: #0b4a6f;
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
   }
 }

@@ -5,15 +5,17 @@
       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
       Your trips
     </a>
-    <h1 class="trip-page__title">{{ current.name }}</h1>
-    <button
-      type="button"
-      class="trip-page__delete"
-      [attr.aria-label]="'Delete trip ' + current.name"
-      (click)="openDelete()"
-    >
-      Delete
-    </button>
+    <div class="trip-page__header">
+      <h1 class="trip-page__title">{{ current.name }}</h1>
+      <button
+        type="button"
+        class="trip-page__delete"
+        [attr.aria-label]="'Delete trip ' + current.name"
+        (click)="openDelete()"
+      >
+        Delete
+      </button>
+    </div>
     <!-- DOM order is the reading and tab order: tiles, Expenses, Balances, then People (F5.R8, F5.R5). -->
     <div class="trip-page__layout">
       <app-summary-tiles [tripId]="current.id" (tripGone)="onTripGone()" />

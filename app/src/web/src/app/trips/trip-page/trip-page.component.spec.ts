@@ -286,6 +286,39 @@ describe('TripPageComponent', () => {
     expect(getComputedStyle(layout).gridTemplateColumns.split(' ').length).toBe(2);
   });
 
+  it('lines the Balances and People panels up with the tiles above them at desktop width (F5.R8)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await settle(harness);
+
+    const host = document.querySelector('app-trip-page') as HTMLElement;
+    host.style.display = 'block';
+    host.style.width = '960px';
+    await settle(harness);
+
+    const rightEdge = (selector: string): number => document.querySelector(selector)!.getBoundingClientRect().right;
+    const tilesRight = rightEdge('app-summary-tiles');
+    expect(Math.round(rightEdge('app-balances-panel'))).toBe(Math.round(tilesRight));
+    expect(Math.round(rightEdge('app-people-panel'))).toBe(Math.round(tilesRight));
+  });
+
+  it('centres the page content on wide screens, like the header and trip list (F5.R8)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await settle(harness);
+
+    const host = document.querySelector('app-trip-page') as HTMLElement;
+    host.style.display = 'block';
+    host.style.width = '1920px';
+    await settle(harness);
+
+    const hostBox = host.getBoundingClientRect();
+    const tilesBox = document.querySelector('app-summary-tiles')!.getBoundingClientRect();
+    const leftSpace = tilesBox.left - hostBox.left;
+    const rightSpace = hostBox.right - tilesBox.right;
+    expect(Math.round(leftSpace)).toBe(Math.round(rightSpace));
+  });
+
   it('stacks the panels in one column at phone width with no horizontal scroll (F5.R5, F5.R8)', async () => {
     const { harness, http } = await openTripPage();
     http.expectOne('/api/trips/trip-1').flush(TRIP);
