@@ -1,0 +1,44 @@
+<section class="balances-panel" aria-labelledby="balances-heading">
+  <h2 id="balances-heading" class="balances-panel__title">Balances</h2>
+  @if (loading()) {
+    <p>Loading balances…</p>
+  } @else if (failed()) {
+    <p role="alert">{{ genericMessage }}</p>
+  } @else if (inconsistent()) {
+    <p role="alert">{{ inconsistentMessage }}</p>
+  } @else if (list(); as current) {
+    @if (current.people.length === 0) {
+      <p class="balances-panel__empty">Add people to the trip to see balances.</p>
+    } @else {
+      @if (nobodyOwes()) {
+        <p class="balances-panel__notice">Nobody owes anything yet.</p>
+      }
+      <ul class="balances-panel__list" [attr.aria-label]="countLabel()">
+        @for (person of current.people; track person.id) {
+          <li class="balances-panel__row">
+            <span class="balances-panel__initial" aria-hidden="true">{{ initial(person) }}</span>
+            <span class="balances-panel__name">{{ person.name }}</span>
+            <span
+              class="balances-panel__tag"
+              [class.balances-panel__tag--owed]="person.status === 'owed'"
+              [class.balances-panel__tag--owes]="person.status === 'owes'"
+              [class.balances-panel__tag--settled]="person.status === 'settled'"
+            >{{ tagText(person.status, person.balanceCents) }}</span>
+            <span class="balances-panel__track" aria-hidden="true">
+              <span
+                class="balances-panel__fill"
+                [class.balances-panel__fill--owed]="person.balanceCents > 0"
+                [class.balances-panel__fill--owes]="person.balanceCents < 0"
+                [style.width.%]="barWidth(person.balanceCents)"
+              ></span>
+            </span>
+          </li>
+        }
+      </ul>
+      <p class="balances-panel__footer">
+        <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+        Balances add up to 0.00
+      </p>
+    }
+  }
+</section>

@@ -38,6 +38,10 @@ async function settle(harness: RouterTestingHarness): Promise<void> {
   TestBed.inject(HttpTestingController)
     .match('/api/trips/trip-1/expenses')
     .forEach((request) => request.flush({ total: 0, count: 0, expenses: [] }));
+  // F5.T5 stub: the Balances panel asks for the trip's balances too. Answer it with an empty list.
+  TestBed.inject(HttpTestingController)
+    .match('/api/trips/trip-1/balances')
+    .forEach((request) => request.flush({ totalCents: 0, people: [] }));
 }
 
 /** Focuses the Delete button, as a click would, then opens the dialog and returns it. */
