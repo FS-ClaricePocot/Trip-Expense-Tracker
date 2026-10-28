@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { screen, within } from '@testing-library/angular';
+import { ExpensesService } from '../../expenses/expenses.service';
 import { BalanceList, PersonBalance } from '../balances.service';
 import { BalancesPanelComponent } from './balances-panel.component';
 
@@ -62,6 +63,27 @@ describe('BalancesPanelComponent', () => {
 
     expect(screen.queryByText(LOADING)).toBeNull();
     expect(screen.getByRole('heading', { name: 'Balances' })).toBeTruthy();
+  });
+
+  it('reloads the balances when an expense is added or deleted on the trip, without a page reload (F5.AC7)', async () => {
+    await renderWith(EXAMPLE_ONE);
+    const expenses = TestBed.inject(ExpensesService);
+    const added = expenses.add('trip-1', { description: 'Taxi', amount: '10', payerPersonId: 'p1', participantPersonIds: ['p1'] });
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/expenses' }).flush({ id: 'e1' });
+    await added;
+    http.expectOne('/api/trips/trip-1/balances').flush({ totalCents: 0, people: [person('p1', 'Sam', 0)] });
+    await settle();
+
+    expect(screen.getByText(NOBODY_OWES)).toBeTruthy();
+
+    const deleted = expenses.delete('trip-1', 'e1');
+    http.expectOne({ method: 'DELETE', url: '/api/trips/trip-1/expenses/e1' }).flush(null, { status: 204, statusText: 'No Content' });
+    await deleted;
+    http.expectOne('/api/trips/trip-1/balances').flush(EXAMPLE_ONE);
+    await settle();
+
+    expect(screen.queryByText(NOBODY_OWES)).toBeNull();
+    expect(screen.getByText('owes 10.00')).toBeTruthy();
   });
 
   it('shows Example 1 tags and the footer (F5.AC1, F5.AC2)', async () => {

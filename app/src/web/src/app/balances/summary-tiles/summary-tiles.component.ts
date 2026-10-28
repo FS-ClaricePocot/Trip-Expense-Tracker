@@ -1,6 +1,18 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { GENERIC_ERROR_MESSAGE } from '../../core/errors/problem-mapper';
+import { ExpensesService } from '../../expenses/expenses.service';
 import { formatCentsGrouped } from '../../expenses/money';
 import { BalancesService, TripSummary } from '../balances.service';
 
@@ -16,6 +28,8 @@ import { BalancesService, TripSummary } from '../balances.service';
 })
 export class SummaryTilesComponent implements OnInit {
   private readonly balancesService = inject(BalancesService);
+  private readonly expensesService = inject(ExpensesService);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** The trip whose summary is shown. */
   readonly tripId = input.required<string>();
@@ -29,6 +43,17 @@ export class SummaryTilesComponent implements OnInit {
   protected readonly format = formatCentsGrouped;
 
   async ngOnInit(): Promise<void> {
+    // F5.R7: an expense added or deleted on this trip changes the totals, so reload them.
+    this.expensesService.expensesChanged
+      .pipe(
+        filter((tripId) => tripId === this.tripId()),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => void this.load());
+    await this.load();
+  }
+
+  private async load(): Promise<void> {
     try {
       this.summary.set(await this.balancesService.summary(this.tripId()));
     } catch (error: unknown) {

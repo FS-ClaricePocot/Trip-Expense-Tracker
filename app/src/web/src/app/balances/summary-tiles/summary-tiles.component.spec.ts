@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { screen, within } from '@testing-library/angular';
+import { ExpensesService } from '../../expenses/expenses.service';
 import { SummaryTilesComponent } from './summary-tiles.component';
 
 const GENERIC_ERROR = 'Something went wrong. Please try again.';
@@ -76,6 +77,21 @@ describe('SummaryTilesComponent', () => {
 
     expect(gone).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('heading')).toBeNull();
+  });
+
+  it('reloads the summary when an expense is added to the trip, without a page reload (F5.R7)', async () => {
+    render();
+    http.expectOne('/api/trips/trip-1/summary').flush({ totalSpentCents: 12000, leftToSettleCents: 5000 });
+    await settle();
+
+    const added = TestBed.inject(ExpensesService).add('trip-1', { description: 'Taxi', amount: '10.50', payerPersonId: 'p1', participantPersonIds: ['p1'] });
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/expenses' }).flush({ id: 'e1' });
+    await added;
+    http.expectOne('/api/trips/trip-1/summary').flush({ totalSpentCents: 13050, leftToSettleCents: 0 });
+    await settle();
+
+    expect(within(screen.getByRole('heading', { name: /Total spent/ })).getByText('130.50')).toBeTruthy();
+    expect(within(screen.getByRole('heading', { name: /Left to settle/ })).getByText('0.00')).toBeTruthy();
   });
 
   it('shows the generic error when the summary request fails', async () => {

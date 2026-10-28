@@ -1,6 +1,19 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { GENERIC_ERROR_MESSAGE, problemType } from '../../core/errors/problem-mapper';
+import { ExpensesService } from '../../expenses/expenses.service';
 import { balanceTagText } from '../balance-tag';
 import { barWidthPercent } from '../bar-scale';
 import { BalanceList, BalancesService, PersonBalance } from '../balances.service';
@@ -21,6 +34,8 @@ export const INCONSISTENT_MESSAGE = 'Balances could not be checked. Please try a
 })
 export class BalancesPanelComponent implements OnInit {
   private readonly balancesService = inject(BalancesService);
+  private readonly expensesService = inject(ExpensesService);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** The trip whose balances are listed. */
   readonly tripId = input.required<string>();
@@ -52,6 +67,17 @@ export class BalancesPanelComponent implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
+    // F5.AC7: an expense added or deleted on this trip changes the balances, so reload them.
+    this.expensesService.expensesChanged
+      .pipe(
+        filter((tripId) => tripId === this.tripId()),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => void this.load());
+    await this.load();
+  }
+
+  private async load(): Promise<void> {
     try {
       this.list.set(await this.balancesService.get(this.tripId()));
     } catch (error: unknown) {
