@@ -9,6 +9,7 @@ using TripExpenseTracker.Api.Auth;
 using TripExpenseTracker.Api.Logging;
 using TripExpenseTracker.Api.Middleware;
 using TripExpenseTracker.Core.Auth;
+using TripExpenseTracker.Core.Balances;
 using TripExpenseTracker.Core.Expenses;
 using TripExpenseTracker.Core.People;
 using TripExpenseTracker.Core.Trips;
@@ -43,6 +44,7 @@ builder.Services.AddScoped<ISessionDao, SessionDao>();
 builder.Services.AddScoped<ITripDao, TripDao>();
 builder.Services.AddScoped<IPersonDao, PersonDao>();
 builder.Services.AddScoped<IExpenseDao, ExpenseDao>();
+builder.Services.AddScoped<IBalanceDao, BalanceDao>();
 builder.Services.AddScoped<TripService>();
 // Expenses report the people they refer to, so a person in an expense is in use (F3.R7). F6 (payments) adds its source here.
 builder.Services.AddScoped<IPersonUsageSource, ExpenseUsageSource>();
