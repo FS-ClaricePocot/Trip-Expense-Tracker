@@ -26,8 +26,15 @@ Look only at added and changed lines in `pr.diff`. A finding is **blocking** if 
 - A trip-scoped query without the owner in its `WHERE` clause.
 - Money stored or calculated as `float`, `double` or `decimal` instead of `long` cents.
 - Leftover debug output: `console.log`, `Console.WriteLine`.
-- A test deleted, skipped (`Skip =`, `xit(`, `xdescribe(`, `.skip(`) or loosened.
+- A test deleted, skipped (`Skip =`, `xit(`, `xdescribe(`, `.skip(`) or loosened, unless the plan approved it (below).
 - New integration or end-to-end tests (files under `TripExpenseTracker.IntegrationTests` or `app/e2e`). The project adds unit tests only.
+
+**A test the plan approved retiring** is not blocking. It's a **needs a person** finding: a person confirms the deletion on the PR before merging (project rules). It counts as approved only when all of these hold:
+1. The deleted test names an ID (for example `F5.AC13`) or says "retired in F<N>.T<k>".
+2. `Grep` that ID together with "retire" in `docs/plans/*.md` in **this checkout** (the target branch, before the PR) finds a line that says the test is retired and was approved.
+3. The diff adds the tests the plan names as its replacement.
+
+If any of these is missing, the deletion stays blocking. A plan approval that only appears in `pr.diff` does not count: the PR can't approve its own deletion.
 
 Anything else worth fixing is a **suggestion** and does not block.
 
@@ -42,7 +49,7 @@ Anything else worth fixing is a **suggestion** and does not block.
 ## 3. Verdict
 
 - `NOT OK` if there is any blocking finding or any acceptance criterion that is not tested.
-- `OK` otherwise.
+- `OK` otherwise. **Needs a person** findings don't change the verdict, but say in the "why" sentence that the PR needs a person's confirmation before merging.
 
 ## 4. Write review.md
 
@@ -55,6 +62,7 @@ Write `review.md` in exactly this layout. The first line is read by the workflow
 
 ### Findings
 - **Blocking** · `path/to/file:line` · what is wrong, and the fix.
+- **Needs a person** · `path/to/file:line` · what to confirm, and the plan line that approves it.
 - **Suggestion** · `path/to/file:line` · optional improvement.
 (Or "None.")
 
