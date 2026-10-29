@@ -19,4 +19,11 @@ public interface IBalanceDao
 {
     /// <summary>The trip's people and expenses for the owner. A trip with no people or expenses gives empty lists, not an error.</summary>
     Task<BalanceSnapshot> GetSnapshotAsync(Guid owner, Guid tripId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The snapshots of every trip the owner has, keyed by trip id, in one owner-filtered read (F6.R19, F6.AC21).
+    /// A trip with no people, expenses or payments is absent. Fakes that do not model this read throw.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, BalanceSnapshot>> ListForOwnerAsync(Guid owner, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("ListForOwnerAsync is not implemented by this balance reader.");
 }

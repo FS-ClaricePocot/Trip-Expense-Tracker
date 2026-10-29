@@ -56,6 +56,30 @@ main {
   color: var(--color-text-muted);
 }
 
+/* F6.R19: the amber and green styles. The text carries the meaning, so colour is not the only signal (F6.R20). */
+.trip-card__settle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0 24px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #fff4d6;
+  color: #7a4f00;
+  font-weight: 600;
+}
+
+.trip-card__settle svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.trip-card__settle--settled {
+  background: #e3f5ea;
+  color: #1d6b3a;
+}
+
 .trip-card__total {
   margin: 4px 0 0;
   padding: 0 24px;

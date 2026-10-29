@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using TripExpenseTracker.Api.Controllers;
 using TripExpenseTracker.Api.Trips;
 using TripExpenseTracker.Core.Auth;
+using TripExpenseTracker.Core.Balances;
 using TripExpenseTracker.Core.Trips;
 using TripExpenseTracker.Tests.Support;
 
@@ -21,12 +22,14 @@ public class TripsControllerTests
 
     private readonly FakeTripDao _dao = new();
     private readonly FakeCurrentUser _currentUser = new(Anna);
+    private readonly FakeSettleBalances _balances = new();
     private readonly TripsController _sut;
 
     public TripsControllerTests()
     {
         var service = new TripService(_dao, new FakeTransaction(), new FakeTimeProvider(Start));
-        _sut = new TripsController(service, _currentUser);
+        var balances = new BalanceService(_balances, _dao);
+        _sut = new TripsController(service, balances, _currentUser);
     }
 
     [Fact]
@@ -152,6 +155,38 @@ public class TripsControllerTests
         var items = ((IEnumerable<TripResponse>)((OkObjectResult)result).Value!).ToList();
         items.Select(item => item.ExpenseCount).Should().Equal(3, 0);
         items.Select(item => item.TotalCents).Should().Equal(1050, 0);
+    }
+
+    [Fact]
+    public async Task List_item_carries_a_toSettle_status_with_the_suggestion_count()
+    {
+        var paris = _dao.Seed(Anna, "Paris 2026");
+        var sam = Guid.NewGuid();
+        var alex = Guid.NewGuid();
+        var jo = Guid.NewGuid();
+        _balances.Set(paris.Id, Anna, new BalanceSnapshot(
+            new List<BalancePerson> { new(sam, "Sam", 1), new(alex, "Alex", 2), new(jo, "Jo", 3) },
+            new List<BalanceExpense>
+            {
+                new(4000, sam, new List<(Guid, long)> { (jo, 3) }),
+                new(1000, sam, new List<(Guid, long)> { (alex, 2) }),
+            }));
+
+        var result = await _sut.List(CancellationToken.None);
+
+        var items = ((IEnumerable<TripListItemResponse>)((OkObjectResult)result).Value!).ToList();
+        items.Single().Settle.Should().BeEquivalentTo(new SettleResponse("toSettle", 2));
+    }
+
+    [Fact]
+    public async Task List_item_without_balance_data_has_a_none_status()
+    {
+        _dao.Seed(Anna, "Rome 2027");
+
+        var result = await _sut.List(CancellationToken.None);
+
+        var items = ((IEnumerable<TripListItemResponse>)((OkObjectResult)result).Value!).ToList();
+        items.Single().Settle.Should().BeEquivalentTo(new SettleResponse("none", 0));
     }
 
     [Fact]

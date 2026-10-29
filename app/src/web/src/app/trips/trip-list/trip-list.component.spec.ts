@@ -140,16 +140,56 @@ describe('TripListComponent', () => {
     expect(getComputedStyle(count).paddingLeft).toBe(getComputedStyle(title).paddingLeft);
   });
 
-  it('shows no balance status on a trip card in F5 (F5.AC13, F5.R10; retired in F6.T12)', async () => {
+  // F5.AC13 (no status on cards in F5) is retired: F6.AC17 to AC20 replace it from F6 on (F5.R10, F6.R19).
+  it('shows "2 payments to settle" in the amber style on a card with two payments (F6.AC17, F6.R19)', async () => {
     const http = await renderList();
     http.expectOne('/api/trips').flush([
-      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 2, expenseCount: 1, totalCents: 3000 }),
+      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 3, expenseCount: 3, totalCents: 6000, settle: { status: 'toSettle', paymentsToSettle: 2 } }),
+    ]);
+
+    await waitFor(() => expect(screen.getByText('2 payments to settle')).toBeTruthy());
+    expect(screen.getByText('2 payments to settle').classList).not.toContain('trip-card__settle--settled');
+  });
+
+  it('shows "1 payment to settle" on a card with one payment (F6.AC18, F6.R19)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 2, expenseCount: 2, totalCents: 5000, settle: { status: 'toSettle', paymentsToSettle: 1 } }),
+    ]);
+
+    await waitFor(() => expect(screen.getByText('1 payment to settle')).toBeTruthy());
+  });
+
+  it('shows "Settled up" with a check mark in the green style when every balance is zero (F6.AC19, F6.R19, F6.R20)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 2, expenseCount: 2, totalCents: 5000, settle: { status: 'settled', paymentsToSettle: 0 } }),
+    ]);
+
+    await waitFor(() => expect(screen.getByText('Settled up')).toBeTruthy());
+    expect(screen.getByText('Settled up').classList).toContain('trip-card__settle--settled');
+    expect(screen.getByText('Settled up').querySelector('svg')).toBeTruthy();
+  });
+
+  it('shows no status on a card with no expenses (F6.AC20, F6.R19)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Mom’s 60th in Cebu', createdAt: '2026-10-03T10:00:00Z', peopleCount: 4, expenseCount: 0, totalCents: 0, settle: { status: 'none', paymentsToSettle: 0 } }),
+    ]);
+
+    await waitFor(() => expect(screen.getByText('no expenses yet')).toBeTruthy());
+    const card = screen.getByRole('listitem');
+    expect(card.textContent).not.toMatch(/settle|settled|owe|owed|balance/i);
+  });
+
+  it('shows no Delete control on a trip card (F6.R20, F2.R6)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 2, expenseCount: 2, totalCents: 5000, settle: { status: 'toSettle', paymentsToSettle: 1 } }),
     ]);
 
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Lisbon' })).toBeTruthy());
-    const card = screen.getByRole('listitem');
-
-    expect(card.textContent).not.toMatch(/owe|owed|settle|balance/i);
+    expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
   });
 
   it('shows the generic error when the list request fails (F2 States)', async () => {

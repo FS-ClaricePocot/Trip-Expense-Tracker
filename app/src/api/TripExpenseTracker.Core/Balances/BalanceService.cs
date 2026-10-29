@@ -56,6 +56,23 @@ public sealed class BalanceService
         return BalanceSummaryResult.Found(BalanceSummary.Compute(snapshot.Expenses, balances), suggestionCount);
     }
 
+    /// <summary>
+    /// The settle status of each of the owner's trips that has balance data, from one owner-filtered read (F6.R19, F6.AC21).
+    /// A trip missing from the result has no people, expenses or payments, so it has no status.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<Guid, TripStatus>> GetTripStatusesAsync(Guid owner, CancellationToken cancellationToken)
+    {
+        var snapshots = await _balances.ListForOwnerAsync(owner, cancellationToken);
+        return snapshots.ToDictionary(entry => entry.Key, entry => StatusOf(entry.Value));
+    }
+
+    /// <summary>Same rule as the settle-up view (F6.R2, F6.R11): suggestions from the balances with payments applied.</summary>
+    private static TripStatus StatusOf(BalanceSnapshot snapshot)
+    {
+        var balances = BalanceCalculator.Calculate(snapshot.People, snapshot.Expenses, PaymentsOf(snapshot));
+        return TripStatus.From(snapshot.Expenses.Count, SettleUpMath.Suggest(balances, snapshot.People).Count);
+    }
+
     private static IReadOnlyList<BalancePayment> PaymentsOf(BalanceSnapshot snapshot) =>
         snapshot.Payments ?? Array.Empty<BalancePayment>();
 

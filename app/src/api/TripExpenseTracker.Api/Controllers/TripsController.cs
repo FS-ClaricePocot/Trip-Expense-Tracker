@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using TripExpenseTracker.Api.Trips;
 using TripExpenseTracker.Core.Auth;
+using TripExpenseTracker.Core.Balances;
 using TripExpenseTracker.Core.Trips;
 
 namespace TripExpenseTracker.Api.Controllers;
@@ -23,19 +24,30 @@ public sealed class TripsController : ControllerBase
     private const string NotFoundType = "trip-not-found";
 
     private readonly TripService _trips;
+    private readonly BalanceService _balances;
     private readonly ICurrentUser _currentUser;
 
-    public TripsController(TripService trips, ICurrentUser currentUser)
+    public TripsController(TripService trips, BalanceService balances, ICurrentUser currentUser)
     {
         _trips = trips;
+        _balances = balances;
         _currentUser = currentUser;
     }
 
+    /// <summary>
+    /// The list in the order the service returns it (F2.R5). Each card's settle status comes from one owner-wide read
+    /// (F6.R19). A trip with no balance data has no status.
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken cancellationToken)
     {
         var trips = await _trips.ListAsync(_currentUser.UserId, cancellationToken);
-        return Ok(trips.Select(TripResponse.From).ToList());
+        var statuses = await _balances.GetTripStatusesAsync(_currentUser.UserId, cancellationToken);
+        return Ok(trips
+            .Select(trip => TripListItemResponse.From(
+                trip,
+                statuses.TryGetValue(trip.Id, out var status) ? status : TripStatus.NoStatus))
+            .ToList());
     }
 
     [HttpPost]

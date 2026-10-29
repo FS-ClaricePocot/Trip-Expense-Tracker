@@ -5,6 +5,7 @@ import { TripCreateFormComponent } from '../trip-create-form/trip-create-form.co
 import { formatCents } from '../../expenses/money';
 import { TRIP_DELETED_STATE, TRIP_LIMIT, TripSummary, TripsService } from '../trips.service';
 import { tripExpenseText } from './expense-count-text';
+import { settleBadge } from './settle-status-text';
 import { tripPeopleText } from './trip-count-text';
 
 /**
@@ -30,6 +31,7 @@ export class TripListComponent implements OnInit {
   protected readonly atLimit = computed(() => this.trips().length >= TRIP_LIMIT);
   protected readonly tripPeopleText = tripPeopleText;
   protected readonly tripExpenseText = tripExpenseText;
+  protected readonly settleBadge = settleBadge;
   protected readonly formatCents = formatCents;
 
   async ngOnInit(): Promise<void> {

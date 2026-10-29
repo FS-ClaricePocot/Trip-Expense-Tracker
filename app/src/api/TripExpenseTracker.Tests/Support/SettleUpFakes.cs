@@ -44,6 +44,15 @@ public sealed class FakeSettleBalances : IBalanceDao
 
         return Task.FromResult(new BalanceSnapshot(new List<BalancePerson>(), new List<BalanceExpense>()));
     }
+
+    /// <summary>The snapshots of the trips this owner has, as the owner-wide read returns them.</summary>
+    public Task<IReadOnlyDictionary<Guid, BalanceSnapshot>> ListForOwnerAsync(Guid owner, CancellationToken cancellationToken)
+    {
+        IReadOnlyDictionary<Guid, BalanceSnapshot> snapshots = _trips
+            .Where(entry => entry.Value.Owner == owner)
+            .ToDictionary(entry => entry.Key, entry => entry.Value.Snapshot);
+        return Task.FromResult(snapshots);
+    }
 }
 
 /// <summary>Fake payment DAO. Rows are kept with an insertion seq, and filtered by owner and trip as the real DAO must do.</summary>

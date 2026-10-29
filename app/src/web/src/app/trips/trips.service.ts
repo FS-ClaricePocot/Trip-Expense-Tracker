@@ -3,6 +3,12 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 /** One item of GET /api/trips (F2.R5), and a created trip (F3.R13, F4.R17, F4.R18). The list is already newest first. */
+/** A card's settle status (F6.R19). The list returns it; the create response does not, so it is optional. */
+export interface TripSettle {
+  status: 'none' | 'toSettle' | 'settled';
+  paymentsToSettle: number;
+}
+
 export interface TripSummary {
   id: string;
   name: string;
@@ -10,6 +16,7 @@ export interface TripSummary {
   peopleCount: number;
   expenseCount: number;
   totalCents: number;
+  settle?: TripSettle;
 }
 
 /** F2.R4: a user can have at most this many trips. */

@@ -21,6 +21,16 @@
           @if (trip.expenseCount > 0) {
             <p class="trip-card__total">Total spent <span class="trip-card__total-amount">{{ formatCents(trip.totalCents) }}</span></p>
           }
+          @if (settleBadge(trip.settle); as badge) {
+            <p class="trip-card__settle" [class.trip-card__settle--settled]="badge.tone === 'settled'">
+              @if (badge.tone === 'settled') {
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              }
+              {{ badge.text }}
+            </p>
+          }
           <svg class="trip-card__wave" viewBox="0 0 300 64" preserveAspectRatio="none" aria-hidden="true" focusable="false">
             <path d="M0 38 C 60 22, 120 52, 180 36 S 260 20, 300 30 V64 H0 Z" />
           </svg>
