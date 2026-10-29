@@ -96,7 +96,7 @@ jobs:
             Write your review to review.md, then stop. Do not post anything and run no commands.
           claude_args: |
             --model haiku
-            --max-turns 15
+            --max-turns 30
             --allowedTools "Read,Grep,Glob,Write"
 
       - name: Post the review and check the verdict
