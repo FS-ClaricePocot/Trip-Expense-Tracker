@@ -5,15 +5,19 @@ namespace TripExpenseTracker.Data;
 
 /// <summary>
 /// Reports the people an expense refers to (F3.R7). A payer counts as "in an expense" even when they are not a
-/// participant, because the payer's reference blocks removal. Filtered on trip_id only: the service calls this only
-/// after the trip is confirmed to belong to the owner. Runs on the unit of work's connection, like the other DAOs.
+/// participant, because the payer's reference blocks removal. Joins trips and filters on owner_user_id, so another
+/// user's trip returns nobody. Runs on the unit of work's connection, like the other DAOs.
 /// </summary>
 public sealed class ExpenseUsageSource : IPersonUsageSource
 {
     private const string PersonIdsSql = """
-        SELECT e.payer_person_id FROM expenses e WHERE e.trip_id = @TripId
+        SELECT e.payer_person_id FROM expenses e
+        JOIN trips t ON t.id = e.trip_id
+        WHERE t.id = @TripId AND t.owner_user_id = @Owner
         UNION
-        SELECT ep.person_id FROM expense_participants ep WHERE ep.trip_id = @TripId
+        SELECT ep.person_id FROM expense_participants ep
+        JOIN trips t ON t.id = ep.trip_id
+        WHERE t.id = @TripId AND t.owner_user_id = @Owner
         """;
 
     private readonly IUnitOfWork _unitOfWork;
@@ -25,12 +29,12 @@ public sealed class ExpenseUsageSource : IPersonUsageSource
 
     public PersonUsageKind Kind => PersonUsageKind.Expense;
 
-    public async Task<IReadOnlyCollection<Guid>> GetPersonIdsInUseAsync(Guid tripId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyCollection<Guid>> GetPersonIdsInUseAsync(Guid owner, Guid tripId, CancellationToken cancellationToken)
     {
         var connection = await _unitOfWork.GetConnectionAsync(cancellationToken);
         var command = new CommandDefinition(
             PersonIdsSql,
-            new { TripId = tripId },
+            new { Owner = owner, TripId = tripId },
             transaction: _unitOfWork.Transaction,
             cancellationToken: cancellationToken);
 

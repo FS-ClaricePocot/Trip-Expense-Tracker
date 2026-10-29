@@ -131,6 +131,7 @@ public class SettleUpControllerTests
         body.Percentage.Should().BeNull();
     }
 
+    /// <summary>Another user's settle-up data gives the same not-found as a missing trip (F6.AC13).</summary>
     [Fact]
     public async Task Get_for_a_foreign_missing_or_non_guid_trip_gives_the_same_404()
     {

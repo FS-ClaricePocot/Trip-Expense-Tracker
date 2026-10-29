@@ -88,10 +88,16 @@ public sealed class PaymentService
                 }
 
                 var payment = new Payment(Guid.NewGuid(), tripId, payerPersonId, payeePersonId, amountCents, _time.GetUtcNow());
-                if (!await _payments.InsertAsync(owner, payment, token))
+                // A person removed after the check above is refused by the database. Throwing rolls back the
+                // transaction, so nothing is kept.
+                switch (await _payments.InsertAsync(owner, payment, token))
                 {
-                    // Throwing rolls back the transaction, so nothing is kept.
-                    throw new PaymentRefusedException(PaymentFailure.NotFound);
+                    case PaymentInsertOutcome.PayerNotOnTrip:
+                        throw new PaymentRefusedException(PaymentFailure.PayerNotOnTrip);
+                    case PaymentInsertOutcome.PayeeNotOnTrip:
+                        throw new PaymentRefusedException(PaymentFailure.PayeeNotOnTrip);
+                    case PaymentInsertOutcome.TripNotFound:
+                        throw new PaymentRefusedException(PaymentFailure.NotFound);
                 }
 
                 return PaymentRecordResult.Recorded(payment);

@@ -201,6 +201,20 @@ public class PeopleServiceTests
         _expenses.Calls.Should().Be(0);
     }
 
+    /// <summary>Every usage source gets the owner, so its query can filter on owner_user_id (project rules).</summary>
+    [Fact]
+    public async Task List_and_remove_pass_the_owner_to_every_usage_source()
+    {
+        var sam = new Person(Guid.NewGuid(), TripId, "Sam", Start);
+        _people.Seed(sam);
+
+        await Sut(_expenses, _payments).ListAsync(Anna, TripId, CancellationToken.None);
+        await Sut(_expenses, _payments).RemoveAsync(Anna, TripId, sam.Id, CancellationToken.None);
+
+        _expenses.Owners.Should().Equal(Anna, Anna);
+        _payments.Owners.Should().Equal(Anna, Anna);
+    }
+
     [Fact]
     public async Task Remove_is_refused_with_in_use_when_a_source_reports_the_person_and_the_dao_is_not_called()
     {
@@ -359,9 +373,12 @@ public class PeopleServiceTests
 
         public int Calls { get; private set; }
 
-        public Task<IReadOnlyCollection<Guid>> GetPersonIdsInUseAsync(Guid tripId, CancellationToken cancellationToken)
+        public List<Guid> Owners { get; } = new();
+
+        public Task<IReadOnlyCollection<Guid>> GetPersonIdsInUseAsync(Guid owner, Guid tripId, CancellationToken cancellationToken)
         {
             Calls++;
+            Owners.Add(owner);
             return Task.FromResult<IReadOnlyCollection<Guid>>(InUse.ToList());
         }
     }

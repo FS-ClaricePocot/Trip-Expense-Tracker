@@ -44,6 +44,7 @@ public sealed class PaymentDao : IPaymentDao
 
     // A payer or payee that is not on this trip (removed after the service checked) is refused by the composite keys.
     private const string ForeignKeyViolation = "23503";
+    private const string PayeeForeignKey = "fk_payments_payee";
 
     private readonly IUnitOfWork _unitOfWork;
 
@@ -75,7 +76,7 @@ public sealed class PaymentDao : IPaymentDao
             row.PayeeName)).ToList();
     }
 
-    public async Task<bool> InsertAsync(Guid owner, Payment payment, CancellationToken cancellationToken)
+    public async Task<PaymentInsertOutcome> InsertAsync(Guid owner, Payment payment, CancellationToken cancellationToken)
     {
         var connection = await _unitOfWork.GetConnectionAsync(cancellationToken);
 
@@ -96,12 +97,15 @@ public sealed class PaymentDao : IPaymentDao
                 transaction: _unitOfWork.Transaction,
                 cancellationToken: cancellationToken));
 
-            return rows > 0;
+            return rows > 0 ? PaymentInsertOutcome.Inserted : PaymentInsertOutcome.TripNotFound;
         }
         catch (PostgresException ex) when (ex.SqlState == ForeignKeyViolation)
         {
-            // Payer or payee is not on the trip. The composite keys refuse the row (F6.R6).
-            return false;
+            // Payer or payee is not on the trip. The composite keys refuse the row (F6.R6), and the constraint
+            // name says which one.
+            return ex.ConstraintName == PayeeForeignKey
+                ? PaymentInsertOutcome.PayeeNotOnTrip
+                : PaymentInsertOutcome.PayerNotOnTrip;
         }
     }
 

@@ -36,7 +36,7 @@ public sealed class PeopleService
 
         foreach (var source in _sources)
         {
-            var ids = await source.GetPersonIdsInUseAsync(tripId, cancellationToken);
+            var ids = await source.GetPersonIdsInUseAsync(owner, tripId, cancellationToken);
             var target = source.Kind == PersonUsageKind.Expense ? inExpense : inPayment;
             target.UnionWith(ids);
         }
@@ -78,7 +78,7 @@ public sealed class PeopleService
 
         foreach (var source in _sources)
         {
-            var ids = await source.GetPersonIdsInUseAsync(tripId, cancellationToken);
+            var ids = await source.GetPersonIdsInUseAsync(owner, tripId, cancellationToken);
             if (ids.Contains(personId))
             {
                 return PersonRemoveResult.Refused(PersonFailure.InUse);

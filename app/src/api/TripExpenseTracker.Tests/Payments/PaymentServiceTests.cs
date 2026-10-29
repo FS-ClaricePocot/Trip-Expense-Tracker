@@ -109,6 +109,22 @@ public class PaymentServiceTests
         result.Failure.Should().Be(PaymentFailure.PayerNotOnTrip);
     }
 
+    /// <summary>A person removed after the check is refused by the database; the refusal names the missing side (F6.R6).</summary>
+    [Theory]
+    [InlineData(PaymentInsertOutcome.PayerNotOnTrip, PaymentFailure.PayerNotOnTrip)]
+    [InlineData(PaymentInsertOutcome.PayeeNotOnTrip, PaymentFailure.PayeeNotOnTrip)]
+    [InlineData(PaymentInsertOutcome.TripNotFound, PaymentFailure.NotFound)]
+    public async Task A_refused_insert_maps_to_the_matching_failure_and_records_nothing(
+        PaymentInsertOutcome refused, PaymentFailure expected)
+    {
+        _payments.RefuseNextInsert = refused;
+
+        var result = await MarkAsync(Anna, TripId, Jo, Sam, 4000);
+
+        result.Failure.Should().Be(expected);
+        _payments.Stored.Should().BeEmpty();
+    }
+
     [Fact]
     public async Task Delete_removes_the_payment_and_an_unknown_id_is_not_found()
     {
@@ -122,6 +138,7 @@ public class PaymentServiceTests
         again.Failure.Should().Be(PaymentFailure.PaymentNotFound);
     }
 
+    /// <summary>Another user's trip is not found for mark, delete and read alike (F6.AC13).</summary>
     [Fact]
     public async Task A_foreign_or_missing_trip_is_not_found_for_every_call()
     {
@@ -271,11 +288,20 @@ public class PaymentServiceTests
             return Task.FromResult(list);
         }
 
-        public Task<bool> InsertAsync(Guid owner, Payment payment, CancellationToken cancellationToken)
+        /// <summary>Set to make the next insert refused by the database, as when a person is removed mid-request.</summary>
+        public PaymentInsertOutcome? RefuseNextInsert { get; set; }
+
+        public Task<PaymentInsertOutcome> InsertAsync(Guid owner, Payment payment, CancellationToken cancellationToken)
         {
             calls.Add("insert");
+            if (RefuseNextInsert is { } refused)
+            {
+                RefuseNextInsert = null;
+                return Task.FromResult(refused);
+            }
+
             _rows.Add((owner, new StoredPayment(payment, ++_seq, names[payment.PayerPersonId], names[payment.PayeePersonId])));
-            return Task.FromResult(true);
+            return Task.FromResult(PaymentInsertOutcome.Inserted);
         }
 
         public Task<bool> DeleteAsync(Guid owner, Guid tripId, Guid paymentId, CancellationToken cancellationToken)

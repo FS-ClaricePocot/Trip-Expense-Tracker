@@ -1,6 +1,6 @@
 # F3 — People: Implementation plan
 
-_Status: Approved · Last updated: 2026-10-22 · Spec: [F3-people](../specs/features/F3-people.md) (Approved, last updated 2026-10-21)_
+_Status: Approved · Last updated: 2026-10-29 · Spec: [F3-people](../specs/features/F3-people.md) (Approved, last updated 2026-10-21)_
 
 ## Overview
 F3 lets a user add and remove the people on a trip. It adds the `people` table, three owner-checked endpoints, and a People panel on the trip page. Removal is refused for anyone who is in an expense or payment, both by the server and by the database. F4 and F6 create the tables that make that check meaningful, so F3 builds the check as an extension point and tests it with stand-ins. F3 is the third build step (F1 → F6). Tests are unit tests only (project rules); the SQL is checked in code review.
@@ -48,7 +48,7 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
   ```
   - `added_at` is kept as the spec says. The list is ordered by `seq`, not `added_at`, because two adds can share a timestamp and the leftover-cent rule needs one exact order. A person removed and re-added gets a new row with a larger `seq` (F3.R5). **F4 must order people by `seq`** whenever it applies the leftover-cent rule.
   - `char_length` counts code points, the same unit F1 and F2 use.
-- **In-use extension point (F3.R7).** Core defines `IPersonUsageSource` with `Kind` (`Expense` or `Payment`) and `GetPersonIdsInUseAsync(tripId)`. `PeopleService` asks every registered source and merges the results into `inExpense` and `inPayment` per person. F3 registers no sources, so nobody is in use until F4 and F6 each add one. Sources are only called after the trip is confirmed to belong to the user, and each filters by `trip_id`.
+- **In-use extension point (F3.R7).** Core defines `IPersonUsageSource` with `Kind` (`Expense` or `Payment`) and `GetPersonIdsInUseAsync(owner, tripId)`. `PeopleService` asks every registered source and merges the results into `inExpense` and `inPayment` per person. F3 registers no sources, so nobody is in use until F4 and F6 each add one. Sources are only called after the trip is confirmed to belong to the user, and each also joins `trips` and filters on `owner_user_id`.
 - **In-use check in the database.** F4 and F6 reference `people(id)` with the default `NO ACTION` (F2 plan, cascade convention), so deleting a person in use fails with PostgreSQL error `23503`. `PersonDao.DeleteAsync` maps that error to an "in use" result. This is the backstop for a race between a remove and an expense being added.
 - **API** (JSON, all need a session through F1's default policy; the owner comes from `ICurrentUser`):
   | Method and path | Request | Success | Failure |
@@ -257,3 +257,4 @@ Unit tests only (project rules).
 - 2026-10-21: _(Proposed.)_ The trip card's people count is a correlated count in the F2 list query (F3.T10), so the list stays one query, and the wording lives in one pure function.
 - 2026-10-22: Test scope reduced to unit tests only, following the project rules change. T1, T3 and T5 lose their integration tests and get review checklists and manual checks instead; T4's endpoint tests become controller unit tests with fakes; T10's integration assertions become a unit mapping test and a manual check; F3.T9 (Playwright end-to-end) is removed and its ID is not reused. F1's existing integration and e2e tests stay and must pass. Status set back to Draft for re-approval.
 - 2026-10-22: Approve the plan with unit tests only? → Yes. Status set to Approved.
+- 2026-10-29: _(F6 PR review fix, approved by you.)_ `GetPersonIdsInUseAsync` takes the owner as well as the trip, so every usage source can filter on `owner_user_id` like the other trip-scoped queries. `PeopleService` passes the owner it already has. This changes how, not what, so the plan stays Approved.

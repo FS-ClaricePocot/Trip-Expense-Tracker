@@ -72,10 +72,10 @@ public sealed class FakeSettlePayments(IReadOnlyDictionary<Guid, string> names) 
         return Task.FromResult(list);
     }
 
-    public Task<bool> InsertAsync(Guid owner, Payment payment, CancellationToken cancellationToken)
+    public Task<PaymentInsertOutcome> InsertAsync(Guid owner, Payment payment, CancellationToken cancellationToken)
     {
         _rows.Add((owner, new StoredPayment(payment, ++_seq, names[payment.PayerPersonId], names[payment.PayeePersonId])));
-        return Task.FromResult(true);
+        return Task.FromResult(PaymentInsertOutcome.Inserted);
     }
 
     public Task<bool> DeleteAsync(Guid owner, Guid tripId, Guid paymentId, CancellationToken cancellationToken)

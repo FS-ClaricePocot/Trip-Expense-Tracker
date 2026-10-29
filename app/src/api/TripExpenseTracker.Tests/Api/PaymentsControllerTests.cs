@@ -114,6 +114,7 @@ public class PaymentsControllerTests
         AssertValidation(result, "payeePersonId", "payee_not_on_trip");
     }
 
+    /// <summary>Another user's trip gives the same not-found as a missing one, and nothing is recorded (F6.AC13).</summary>
     [Fact]
     public async Task Record_on_a_foreign_trip_gives_the_same_404_as_a_missing_trip()
     {
@@ -142,6 +143,7 @@ public class PaymentsControllerTests
         _payments.RowCount.Should().Be(0);
     }
 
+    /// <summary>Deleting on another user's trip gives the same not-found as a missing one, and removes nothing (F6.AC13).</summary>
     [Fact]
     public async Task Delete_of_a_missing_payment_foreign_trip_or_non_guid_gives_the_same_404_and_removes_nothing()
     {

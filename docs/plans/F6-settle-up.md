@@ -1,6 +1,6 @@
 # F6 — Settle up: Implementation plan
 
-_Status: Approved · Last updated: 2026-10-22 · Spec: [F6-settle-up](../specs/features/F6-settle-up.md) (Approved, last updated 2026-10-21)_
+_Status: Approved · Last updated: 2026-10-29 · Spec: [F6-settle-up](../specs/features/F6-settle-up.md) (Approved, last updated 2026-10-21)_
 
 ## Overview
 F6 proposes the fewest payments the app can, using the balances from F5, and lets the user mark each suggestion as paid. A recorded payment changes the balances, so the suggestions update until every balance is zero. It adds the `payments` table, the settle-up and payment endpoints, and the Settle up view: the view switch, three summary tiles, the Suggested payments panel with its dialogs, and the Payments made list. It replaces the zero payment terms in F5's formula and registers the real "in use" source for payments with F3's people service. F6 is the last MVP build step (F1 → F6).
@@ -78,7 +78,7 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
   - No `PUT` or `PATCH` exists (F6.R9).
   - No paging, because the number of payments is not limited.
   - The Settle up view reads the Balances panel from `GET /api/trips/{tripId}/balances` (F5), unchanged (F6.R13).
-- **In-use source (F3.R7):** `PaymentUsageSource` implements `IPersonUsageSource` with `Kind = Payment`. It returns the payers and payees of the trip's payments, filtered by `trip_id`.
+- **In-use source (F3.R7):** `PaymentUsageSource` implements `IPersonUsageSource` with `Kind = Payment`. It returns the payers and payees of the trip's payments, joined to `trips` and filtered by the trip and its `owner_user_id`.
 - **Trip detail:** `GET /api/trips/{id}` (F2) returns the real `paymentCount`.
 - **Summary tiles:** `GET /api/trips/{tripId}/summary` (F5) gains `suggestionCount`, the length of the suggestion list. The trip page's "in {n} payments" note uses it.
 - **Browser storage:** none.
@@ -141,7 +141,7 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Change:**
   - `TripLock.LockAsync(owner, tripId)`: `SELECT id FROM trips WHERE id = @trip AND owner_user_id = @owner FOR UPDATE` on the unit of work's transaction. Zero rows is not found.
   - `PaymentDao`: insert, list newest first by `seq`, and delete with the owner join. Delete returns the affected row count.
-  - `PaymentUsageSource.GetPersonIdsAsync(tripId)`: payers and payees, filtered by `trip_id` (F3.R7).
+  - `PaymentUsageSource.GetPersonIdsInUseAsync(owner, tripId)`: payers and payees, joined to `trips` and filtered by the trip and its `owner_user_id` (F3.R7).
 - **Covers:** F6.R7, F6.R8, F6.R15, F6.R16 (in-use source), F6.AC6, F6.AC15, F6.AC16 (DAO side).
 - **Tests:** none automated (unit tests only; the DAO is SQL). **Code review checklist:**
   - `TripLock` runs `SELECT ... FOR UPDATE` filtered by the owner, on the unit of work's transaction, and zero rows is "not found". This is what stops two simultaneous Mark as paid calls from recording the same suggestion twice (F6.R18);
@@ -396,3 +396,5 @@ Unit tests only (project rules).
 - 2026-10-29: _(Approved by you.)_ The trip lock is `ITripLock` in Core, implemented in Data, because `IUnitOfWork` lives in Data and Core cannot reference it. Replaces the `IUnitOfWork.LockTripAsync` design.
 - 2026-10-29: _(Approved by you.)_ `ExpenseService` gains an `ITripLock` constructor argument, and two test setup lines change. No assertions change.
 - 2026-10-29: _(Approved by you.)_ `GET /api/trips/{tripId}/summary` gains `suggestionCount`, needed for the "in {n} payments" note. The plan did not list it.
+- 2026-10-29: _(PR review fix, approved by you.)_ `IPersonUsageSource.GetPersonIdsInUseAsync` takes the owner, and both usage sources (F4's `ExpenseUsageSource`, F6's `PaymentUsageSource`) join `trips` and filter on `owner_user_id`, like every other trip-scoped query. Before, they filtered on `trip_id` only and relied on the caller's ownership check. This also changes F3's interface and F4's source; see the F3 plan log.
+- 2026-10-29: _(PR review fix, approved by you.)_ `IPaymentDao.InsertAsync` returns a `PaymentInsertOutcome` instead of a bool. When the composite foreign key refuses the row (a payer or payee removed after the service checked), the constraint name says which side, and the service returns `PayerNotOnTrip` or `PayeeNotOnTrip` (400) instead of not found.

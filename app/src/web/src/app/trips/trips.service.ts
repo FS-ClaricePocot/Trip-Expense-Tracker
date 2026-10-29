@@ -2,13 +2,13 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
-/** One item of GET /api/trips (F2.R5), and a created trip (F3.R13, F4.R17, F4.R18). The list is already newest first. */
 /** A card's settle status (F6.R19). The list returns it; the create response does not, so it is optional. */
 export interface TripSettle {
   status: 'none' | 'toSettle' | 'settled';
   paymentsToSettle: number;
 }
 
+/** One item of GET /api/trips (F2.R5), and a created trip (F3.R13, F4.R17, F4.R18). The list is already newest first. */
 export interface TripSummary {
   id: string;
   name: string;
