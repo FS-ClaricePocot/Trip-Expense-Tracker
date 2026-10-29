@@ -26,7 +26,8 @@ main {
 
 .trip-card {
   position: relative;
-  min-height: 190px;
+  /* Bottom space keeps the text clear of the wave and the open button (64px wave, button at 24px). */
+  padding-bottom: 88px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -58,6 +59,8 @@ main {
 
 /* F6.R19: the amber and green styles. The text carries the meaning, so colour is not the only signal (F6.R20). */
 .trip-card__settle {
+  /* The card is a flex column, which stretches children by default; keep the badge to its text width. */
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 6px;
