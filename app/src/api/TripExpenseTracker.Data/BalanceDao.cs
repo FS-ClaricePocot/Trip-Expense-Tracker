@@ -37,6 +37,14 @@ public sealed class BalanceDao : IBalanceDao
         ORDER BY p.seq
         """;
 
+    // Payments as balances use them: the payer and payee and the amount (F5.R1, F6.R10). Owner-filtered like the rest.
+    private const string PaymentsSql = """
+        SELECT pm.payer_person_id AS "FromPersonId", pm.payee_person_id AS "ToPersonId", pm.amount_cents AS "AmountCents"
+        FROM payments pm
+        JOIN trips t ON t.id = pm.trip_id
+        WHERE pm.trip_id = @TripId AND t.owner_user_id = @Owner
+        """;
+
     private readonly IUnitOfWork _unitOfWork;
 
     public BalanceDao(IUnitOfWork unitOfWork)
@@ -73,6 +81,16 @@ public sealed class BalanceDao : IBalanceDao
                 group => group.Key,
                 group => (IReadOnlyList<(Guid PersonId, long Seq)>)group.Select(row => (row.PersonId, row.Seq)).ToList());
 
+        var paymentRows = await connection.QueryAsync<PaymentRow>(new CommandDefinition(
+            PaymentsSql,
+            parameters,
+            transaction: _unitOfWork.Transaction,
+            cancellationToken: cancellationToken));
+
+        var payments = paymentRows
+            .Select(row => new BalancePayment(row.FromPersonId, row.ToPersonId, row.AmountCents))
+            .ToList();
+
         var people = peopleRows
             .Select(row => new BalancePerson(row.Id, row.Name, row.Seq))
             .ToList();
@@ -86,11 +104,13 @@ public sealed class BalanceDao : IBalanceDao
                     : Array.Empty<(Guid PersonId, long Seq)>()))
             .ToList();
 
-        return new BalanceSnapshot(people, expenses);
+        return new BalanceSnapshot(people, expenses, payments);
     }
 
     /// <summary>Row types as Npgsql returns them. Column aliases match the property names.</summary>
     internal sealed record PersonRow(Guid Id, string Name, long Seq);
+
+    internal sealed record PaymentRow(Guid FromPersonId, Guid ToPersonId, long AmountCents);
 
     internal sealed record ExpenseRow(Guid Id, long AmountCents, Guid PayerId);
 

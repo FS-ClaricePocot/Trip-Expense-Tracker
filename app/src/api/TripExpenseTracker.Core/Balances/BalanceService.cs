@@ -1,3 +1,4 @@
+using TripExpenseTracker.Core.Payments;
 using TripExpenseTracker.Core.Trips;
 
 namespace TripExpenseTracker.Core.Balances;
@@ -31,7 +32,7 @@ public sealed class BalanceService
             return BalanceListResult.Refused(BalanceServiceFailure.NotFound);
         }
 
-        var balances = BalanceCalculator.Calculate(snapshot.People, snapshot.Expenses, []);
+        var balances = BalanceCalculator.Calculate(snapshot.People, snapshot.Expenses, PaymentsOf(snapshot));
         if (_verify(balances) is not null)
         {
             return BalanceListResult.Refused(BalanceServiceFailure.BalancesInconsistent, snapshot.People.Count);
@@ -49,9 +50,14 @@ public sealed class BalanceService
             return BalanceSummaryResult.Refused(BalanceServiceFailure.NotFound);
         }
 
-        var balances = BalanceCalculator.Calculate(snapshot.People, snapshot.Expenses, []);
-        return BalanceSummaryResult.Found(BalanceSummary.Compute(snapshot.Expenses, balances));
+        var balances = BalanceCalculator.Calculate(snapshot.People, snapshot.Expenses, PaymentsOf(snapshot));
+        // The "in {n} payments" count under Left to settle (F5.R8, F6.R2): the number of suggestions from the same balances.
+        var suggestionCount = SettleUpMath.Suggest(balances, snapshot.People).Count;
+        return BalanceSummaryResult.Found(BalanceSummary.Compute(snapshot.Expenses, balances), suggestionCount);
     }
+
+    private static IReadOnlyList<BalancePayment> PaymentsOf(BalanceSnapshot snapshot) =>
+        snapshot.Payments ?? Array.Empty<BalancePayment>();
 
     /// <summary>The owner's snapshot, or null when the trip is missing or belongs to someone else.</summary>
     private async Task<BalanceSnapshot?> ReadAsync(Guid owner, Guid tripId, CancellationToken cancellationToken)

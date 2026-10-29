@@ -50,6 +50,23 @@ describe('SummaryTilesComponent', () => {
     expect(headings[1]).toContain('Left to settle');
   });
 
+  const paymentCountCases: ReadonlyArray<readonly [number, string]> = [
+    [1, 'in 1 payment'],
+    [2, 'in 2 payments'],
+    [0, 'in 0 payments'],
+  ];
+  paymentCountCases.forEach(([count, text]) => {
+    it(`shows "${text}" under Left to settle (F5.R8)`, async () => {
+      render();
+      http
+        .expectOne('/api/trips/trip-1/summary')
+        .flush({ totalSpentCents: 12000, leftToSettleCents: 5000, suggestionCount: count });
+      await settle();
+
+      expect(within(screen.getByRole('heading', { name: /Left to settle/ })).getByText(text)).toBeTruthy();
+    });
+  });
+
   it('shows the tiles as headings with the amounts in their text (accessibility)', async () => {
     render();
     http.expectOne('/api/trips/trip-1/summary').flush({ totalSpentCents: 184250, leftToSettleCents: 0 });

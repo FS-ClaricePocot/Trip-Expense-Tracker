@@ -107,6 +107,67 @@ public class BalanceCalculatorTests
     }
 
     [Fact]
+    public void Example_3_after_Jo_pays_Sam_40_00_leaves_Sam_owed_10_00_and_Alex_owing_10_00()
+    {
+        // Example 1 balances are Sam +50.00, Alex -10.00, Jo -40.00 (product.md, R6). Then Jo pays Sam 40.00 (F6.R10, F6.AC2).
+        var expenses = new[]
+        {
+            new BalanceExpense(5000, Sam, new[] { (Jo, 3L) }),
+            new BalanceExpense(1000, Jo, new[] { (Alex, 2L) }),
+        };
+        var payments = new[] { new BalancePayment(Jo, Sam, 4000) };
+
+        var balances = BalanceCalculator.Calculate(new[] { SamP, AlexP, JoP }, expenses, payments);
+
+        balances.Select(b => b.BalanceCents).Should().Equal(1000, -1000, 0);
+        balances.Sum(b => b.BalanceCents).Should().Be(0);
+    }
+
+    [Fact]
+    public void Sum_of_balances_is_zero_for_many_random_expense_and_payment_sets()
+    {
+        // F6.R10, F5.AC2. Fixed seed, so the run is repeatable and does not depend on the clock.
+        var random = new Random(20261029);
+        var people = Enumerable.Range(1, 5)
+            .Select(i => new BalancePerson(Guid.NewGuid(), $"Person {i}", i))
+            .ToList();
+
+        for (var run = 0; run < 200; run++)
+        {
+            var expenses = new List<BalanceExpense>();
+            var expenseCount = random.Next(0, 8);
+            for (var e = 0; e < expenseCount; e++)
+            {
+                var payer = people[random.Next(people.Count)].Id;
+                var participants = people
+                    .Where(_ => random.Next(2) == 1)
+                    .Select(p => (p.Id, p.Seq))
+                    .ToList();
+                if (participants.Count == 0)
+                {
+                    participants.Add((people[0].Id, people[0].Seq));
+                }
+
+                expenses.Add(new BalanceExpense(random.Next(1, 100_000), payer, participants));
+            }
+
+            var payments = new List<BalancePayment>();
+            var paymentCount = random.Next(0, 6);
+            for (var p = 0; p < paymentCount; p++)
+            {
+                var from = random.Next(people.Count);
+                // Never the same person on both sides (the database check, F6.R6).
+                var to = (from + random.Next(1, people.Count)) % people.Count;
+                payments.Add(new BalancePayment(people[from].Id, people[to].Id, random.Next(1, 50_000)));
+            }
+
+            var balances = BalanceCalculator.Calculate(people, expenses, payments);
+
+            balances.Sum(b => b.BalanceCents).Should().Be(0);
+        }
+    }
+
+    [Fact]
     public void Sum_of_balances_is_zero_for_many_random_expense_sets()
     {
         // F5.AC2, F5.R3. Fixed seed, so the run is repeatable and does not depend on the clock.

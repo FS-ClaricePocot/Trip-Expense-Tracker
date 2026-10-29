@@ -42,6 +42,11 @@ export class SummaryTilesComponent implements OnInit {
   protected readonly genericMessage = GENERIC_ERROR_MESSAGE;
   protected readonly format = formatCentsGrouped;
 
+  /** "in 1 payment", "in 2 payments", "in 0 payments" (F5.R8, F6 spec). */
+  protected paymentsNote(count: number): string {
+    return `in ${count} ${count === 1 ? 'payment' : 'payments'}`;
+  }
+
   async ngOnInit(): Promise<void> {
     // F5.R7: an expense added or deleted on this trip changes the totals, so reload them.
     this.expensesService.expensesChanged

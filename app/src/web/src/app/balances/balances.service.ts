@@ -23,6 +23,8 @@ export interface BalanceList {
 export interface TripSummary {
   totalSpentCents: number;
   leftToSettleCents: number;
+  /** The number of suggested payments behind Left to settle ("in {n} payments", F5.R8). */
+  suggestionCount: number;
 }
 
 @Injectable({ providedIn: 'root' })

@@ -63,7 +63,7 @@ public sealed class BalancesController : ControllerBase
 
         var result = await _balances.GetSummaryAsync(_currentUser.UserId, trip, cancellationToken);
         return result.Succeeded
-            ? Ok(BalanceSummaryResponse.From(result.Summary!))
+            ? Ok(BalanceSummaryResponse.From(result.Summary!, result.SuggestionCount))
             : TripNotFound();
     }
 

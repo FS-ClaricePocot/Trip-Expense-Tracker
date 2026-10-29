@@ -22,15 +22,77 @@ public class ExpenseServiceTests
     private readonly FakeExpenseDao _expenses;
     private readonly FakeTransaction _transaction = new();
     private readonly FakeTimeProvider _time = new(Start);
+    private readonly FakeTripLock _tripLock = new();
     private readonly ExpenseService _sut;
 
     public ExpenseServiceTests()
     {
         _expenses = new FakeExpenseDao(_people);
-        _sut = new ExpenseService(_expenses, _people, _trips, _transaction, _time);
+        _sut = new ExpenseService(_expenses, _people, _trips, _transaction, _time, _tripLock);
         _trips.Add(new Trip(TripId, Anna, "Paris 2026", Start));
         _trips.Add(new Trip(OtherTripId, Anna, "Rome 2026", Start));
         _trips.Add(new Trip(BensTripId, Ben, "Ben's trip", Start));
+        _tripLock.Own(Anna, TripId);
+        _tripLock.Own(Anna, OtherTripId);
+        _tripLock.Own(Ben, BensTripId);
+    }
+
+    /// <summary>Add takes the trip lock inside its transaction before it writes (F6.R18).</summary>
+    [Fact]
+    public async Task Add_takes_the_trip_lock_inside_the_transaction_before_writing()
+    {
+        var sam = _people.Add(Anna, TripId, "Sam");
+
+        var result = await _sut.AddAsync(Anna, TripId, "Taxi", "12.00", sam, new[] { sam }, CancellationToken.None);
+
+        result.Succeeded.Should().BeTrue();
+        _tripLock.CallCount.Should().Be(1);
+        _transaction.RunCount.Should().Be(1);
+        _expenses.RowCount.Should().Be(1);
+    }
+
+    /// <summary>A refused lock stops the add before any row is written, so the lock gates the insert (F6.R15, F6.R18).</summary>
+    [Fact]
+    public async Task Add_to_a_trip_the_lock_does_not_own_writes_nothing()
+    {
+        var sam = _people.Add(Anna, TripId, "Sam");
+
+        var result = await _sut.AddAsync(Anna, BensTripId, "Taxi", "12.00", sam, new[] { sam }, CancellationToken.None);
+
+        result.Succeeded.Should().BeFalse();
+        _tripLock.CallCount.Should().Be(1);
+        _expenses.RowCount.Should().Be(0);
+    }
+
+    /// <summary>Delete takes the trip lock inside a transaction, and removes the expense when the lock is held (F6.R18).</summary>
+    [Fact]
+    public async Task Delete_takes_the_trip_lock_and_removes_the_expense()
+    {
+        var sam = _people.Add(Anna, TripId, "Sam");
+        var added = await _sut.AddAsync(Anna, TripId, "Taxi", "12.00", sam, new[] { sam }, CancellationToken.None);
+        var before = _tripLock.CallCount;
+        var runsBefore = _transaction.RunCount;
+
+        var result = await _sut.DeleteAsync(Anna, TripId, added.Expense!.Id, CancellationToken.None);
+
+        result.Removed.Should().BeTrue();
+        _tripLock.CallCount.Should().Be(before + 1);
+        _transaction.RunCount.Should().Be(runsBefore + 1);
+        _expenses.RowCount.Should().Be(0);
+    }
+
+    /// <summary>Delete on a trip the lock does not own is not found, and removes nothing (F4.R15, F6.R15).</summary>
+    [Fact]
+    public async Task Delete_on_a_trip_the_lock_does_not_own_is_not_found_and_removes_nothing()
+    {
+        var sam = _people.Add(Anna, TripId, "Sam");
+        var added = await _sut.AddAsync(Anna, TripId, "Taxi", "12.00", sam, new[] { sam }, CancellationToken.None);
+
+        var result = await _sut.DeleteAsync(Anna, BensTripId, added.Expense!.Id, CancellationToken.None);
+
+        result.Removed.Should().BeFalse();
+        result.Failure.Should().Be(ExpenseFailure.NotFound);
+        _expenses.RowCount.Should().Be(1);
     }
 
     [Fact]

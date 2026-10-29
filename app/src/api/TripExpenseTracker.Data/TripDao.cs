@@ -14,7 +14,8 @@ public sealed class TripDao : ITripDao
         SELECT t.id AS "Id", t.owner_user_id AS "OwnerUserId", t.name AS "Name", t.created_at AS "CreatedAt",
                (SELECT COUNT(*)::int FROM people p WHERE p.trip_id = t.id) AS "PeopleCount",
                (SELECT COUNT(*)::int FROM expenses e WHERE e.trip_id = t.id) AS "ExpenseCount",
-               (SELECT COALESCE(SUM(e.amount_cents), 0)::bigint FROM expenses e WHERE e.trip_id = t.id) AS "TotalCents"
+               (SELECT COALESCE(SUM(e.amount_cents), 0)::bigint FROM expenses e WHERE e.trip_id = t.id) AS "TotalCents",
+               (SELECT COUNT(*)::int FROM payments pm WHERE pm.trip_id = t.id) AS "PaymentCount"
         FROM trips t
         WHERE t.owner_user_id = @Owner
         ORDER BY t.created_at DESC, t.id DESC
@@ -25,7 +26,8 @@ public sealed class TripDao : ITripDao
         SELECT t.id AS "Id", t.owner_user_id AS "OwnerUserId", t.name AS "Name", t.created_at AS "CreatedAt",
                (SELECT COUNT(*)::int FROM people p WHERE p.trip_id = t.id) AS "PeopleCount",
                (SELECT COUNT(*)::int FROM expenses e WHERE e.trip_id = t.id) AS "ExpenseCount",
-               (SELECT COALESCE(SUM(e.amount_cents), 0)::bigint FROM expenses e WHERE e.trip_id = t.id) AS "TotalCents"
+               (SELECT COALESCE(SUM(e.amount_cents), 0)::bigint FROM expenses e WHERE e.trip_id = t.id) AS "TotalCents",
+               (SELECT COUNT(*)::int FROM payments pm WHERE pm.trip_id = t.id) AS "PaymentCount"
         FROM trips t
         WHERE t.owner_user_id = @Owner AND t.id = @Id
         """;
@@ -158,8 +160,8 @@ public sealed class TripDao : ITripDao
     /// list and the single-trip read. timestamptz comes back as DateTime (UTC), not DateTimeOffset, so the row is
     /// converted to the domain type here (same as UserDao).
     /// </summary>
-    internal sealed record TripWithExpensesRow(Guid Id, Guid OwnerUserId, string Name, DateTime CreatedAt, int PeopleCount, int ExpenseCount, long TotalCents)
+    internal sealed record TripWithExpensesRow(Guid Id, Guid OwnerUserId, string Name, DateTime CreatedAt, int PeopleCount, int ExpenseCount, long TotalCents, int PaymentCount)
     {
-        public Trip ToTrip() => new(Id, OwnerUserId, Name, new DateTimeOffset(DateTime.SpecifyKind(CreatedAt, DateTimeKind.Utc)), PeopleCount, ExpenseCount, TotalCents);
+        public Trip ToTrip() => new(Id, OwnerUserId, Name, new DateTimeOffset(DateTime.SpecifyKind(CreatedAt, DateTimeKind.Utc)), PeopleCount, ExpenseCount, TotalCents, PaymentCount);
     }
 }
