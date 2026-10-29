@@ -164,6 +164,45 @@ describe('BalancesPanelComponent', () => {
     expect(screen.getByRole('alert').textContent?.trim()).toBe(GENERIC_ERROR);
   });
 
+  it('clears an earlier error when a later reload succeeds (F5.AC7)', async () => {
+    await renderWith(EXAMPLE_ONE);
+    const expenses = TestBed.inject(ExpensesService);
+
+    const added = expenses.add('trip-1', { description: 'Taxi', amount: '10', payerPersonId: 'p1', participantPersonIds: ['p1'] });
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/expenses' }).flush({ id: 'e1' });
+    await added;
+    http.expectOne('/api/trips/trip-1/balances').flush(null, { status: 500, statusText: 'Server Error' });
+    await settle();
+    expect(screen.getByRole('alert').textContent?.trim()).toBe(GENERIC_ERROR);
+
+    const deleted = expenses.delete('trip-1', 'e1');
+    http.expectOne({ method: 'DELETE', url: '/api/trips/trip-1/expenses/e1' }).flush(null, { status: 204, statusText: 'No Content' });
+    await deleted;
+    http.expectOne('/api/trips/trip-1/balances').flush(EXAMPLE_ONE);
+    await settle();
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByText('owes 10.00')).toBeTruthy();
+  });
+
+  it('clears the inconsistent message when a later reload succeeds (F5.AC7, F5.AC16)', async () => {
+    render();
+    http
+      .expectOne('/api/trips/trip-1/balances')
+      .flush({ type: 'balances_inconsistent', title: 'Balances could not be checked.' }, { status: 500, statusText: 'Server Error' });
+    await settle();
+    expect(screen.getByRole('alert').textContent?.trim()).toBe(INCONSISTENT);
+
+    const added = TestBed.inject(ExpensesService).add('trip-1', { description: 'Taxi', amount: '10', payerPersonId: 'p1', participantPersonIds: ['p1'] });
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/expenses' }).flush({ id: 'e1' });
+    await added;
+    http.expectOne('/api/trips/trip-1/balances').flush(EXAMPLE_ONE);
+    await settle();
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByText('owes 10.00')).toBeTruthy();
+  });
+
   it('emits tripGone on a 404 (F5.R12)', async () => {
     render();
     let gone = 0;

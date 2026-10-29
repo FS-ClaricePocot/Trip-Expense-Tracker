@@ -102,4 +102,27 @@ describe('SummaryTilesComponent', () => {
     expect(screen.getByRole('alert').textContent?.trim()).toBe(GENERIC_ERROR);
     expect(screen.queryByRole('heading')).toBeNull();
   });
+
+  it('clears an earlier error when a later reload succeeds (F5.R7)', async () => {
+    render();
+    http.expectOne('/api/trips/trip-1/summary').flush({ totalSpentCents: 12000, leftToSettleCents: 5000 });
+    await settle();
+    const expenses = TestBed.inject(ExpensesService);
+
+    const added = expenses.add('trip-1', { description: 'Taxi', amount: '10.50', payerPersonId: 'p1', participantPersonIds: ['p1'] });
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/expenses' }).flush({ id: 'e1' });
+    await added;
+    http.expectOne('/api/trips/trip-1/summary').flush(null, { status: 500, statusText: 'Server Error' });
+    await settle();
+    expect(screen.getByRole('alert').textContent?.trim()).toBe(GENERIC_ERROR);
+
+    const deleted = expenses.delete('trip-1', 'e1');
+    http.expectOne({ method: 'DELETE', url: '/api/trips/trip-1/expenses/e1' }).flush(null, { status: 204, statusText: 'No Content' });
+    await deleted;
+    http.expectOne('/api/trips/trip-1/summary').flush({ totalSpentCents: 12000, leftToSettleCents: 5000 });
+    await settle();
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(within(screen.getByRole('heading', { name: /Total spent/ })).getByText('120.00')).toBeTruthy();
+  });
 });

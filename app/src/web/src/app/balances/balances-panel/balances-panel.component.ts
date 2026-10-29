@@ -78,6 +78,9 @@ export class BalancesPanelComponent implements OnInit {
   }
 
   private async load(): Promise<void> {
+    // A reload starts clean, so a success after an earlier error shows the list again (F5.AC7).
+    this.failed.set(false);
+    this.inconsistent.set(false);
     try {
       this.list.set(await this.balancesService.get(this.tripId()));
     } catch (error: unknown) {

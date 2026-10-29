@@ -54,6 +54,8 @@ export class SummaryTilesComponent implements OnInit {
   }
 
   private async load(): Promise<void> {
+    // A reload starts clean, so a success after an earlier error shows the tiles again (F5.R7).
+    this.failed.set(false);
     try {
       this.summary.set(await this.balancesService.summary(this.tripId()));
     } catch (error: unknown) {
