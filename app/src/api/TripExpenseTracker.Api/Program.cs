@@ -58,6 +58,9 @@ builder.Services.AddScoped<PeopleService>();
 builder.Services.AddScoped<ExpenseService>();
 // Balances are calculated on each request (F5.R7). The service only reads, and logs no amounts or names (F5.AC16).
 builder.Services.AddScoped<BalanceService>();
+// Payments and the settle-up read (F6). Both take the request's unit of work through the trip lock and DAOs above.
+builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<SettleUpService>();
 
 // Auth. AuthTransaction shares the scoped unit of work with the DAOs, so register and its session insert share one transaction (F1.R7).
 builder.Services.AddScoped<IAuthTransaction>(sp =>
