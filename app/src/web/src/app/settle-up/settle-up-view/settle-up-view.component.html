@@ -1,0 +1,10 @@
+<section class="settle-up-view" aria-label="Settle up">
+  @if (loading()) {
+    <p>Loading settle up…</p>
+  } @else if (failed()) {
+    <p role="alert">{{ genericMessage }}</p>
+  } @else if (settleUp(); as current) {
+    <app-summary-tiles-settle [summary]="current" />
+  }
+  <app-balances-panel [tripId]="tripId()" (tripGone)="tripGone.emit()" />
+</section>

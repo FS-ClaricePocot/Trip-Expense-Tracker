@@ -8,6 +8,8 @@ import { GENERIC_ERROR_MESSAGE, TRIP_NOT_FOUND_MESSAGE } from '../../core/errors
 import { HeaderComponent } from '../../core/header/header.component';
 import { ExpensesPanelComponent } from '../../expenses/expenses-panel/expenses-panel.component';
 import { PeoplePanelComponent } from '../../people/people-panel/people-panel.component';
+import { SettleUpViewComponent } from '../../settle-up/settle-up-view/settle-up-view.component';
+import { TripView, TripViewSwitchComponent } from '../../settle-up/trip-view-switch/trip-view-switch.component';
 import { DeleteTripDialogComponent, DeleteTripDialogData } from '../delete-trip-dialog/delete-trip-dialog.component';
 import { TRIP_DELETED_STATE, TripDetail, TripsService } from '../trips.service';
 
@@ -25,6 +27,8 @@ import { TRIP_DELETED_STATE, TripDetail, TripsService } from '../trips.service';
     PeoplePanelComponent,
     ExpensesPanelComponent,
     BalancesPanelComponent,
+    TripViewSwitchComponent,
+    SettleUpViewComponent,
   ],
   templateUrl: './trip-page.component.html',
   styleUrl: './trip-page.component.scss',
@@ -37,6 +41,8 @@ export class TripPageComponent implements OnInit {
   private readonly dialog = inject(Dialog);
 
   protected readonly trip = signal<TripDetail | null>(null);
+  /** F6.R1: the Expenses view is the default (F6 spec, User flow step 1). */
+  protected readonly view = signal<TripView>('expenses');
   /** F2.R9: not owned, missing, or deleted in another tab. */
   protected readonly notFound = signal(false);
   protected readonly failed = signal(false);

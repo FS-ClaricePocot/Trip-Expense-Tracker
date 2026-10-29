@@ -1,0 +1,36 @@
+<section class="settle-tiles" aria-label="Settle up summary">
+  <div class="settle-tiles__grid">
+    <div class="settle-tiles__tile settle-tiles__tile--paid">
+      <h2 class="settle-tiles__heading">
+        <span class="settle-tiles__label">Paid back so far</span>
+        <span class="settle-tiles__amount">{{ format(summary().paidBackCents) }}</span>
+        <span class="settle-tiles__note">of <span>{{ format(summary().owedCents) }}</span> owed</span>
+      </h2>
+      @if (summary().owedCents === 0) {
+        <p class="settle-tiles__nothing">Nothing to settle yet.</p>
+      } @else {
+        <div
+          class="settle-tiles__bar"
+          role="progressbar"
+          aria-label="Paid back so far"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-valuenow]="summary().percentage"
+        >
+          <span class="settle-tiles__fill" [style.width.%]="summary().percentage"></span>
+        </div>
+        <p class="settle-tiles__percent"><span>{{ summary().percentage }}%</span> settled</p>
+      }
+    </div>
+    <h2 class="settle-tiles__tile settle-tiles__tile--left">
+      <span class="settle-tiles__label">Left to settle</span>
+      <span class="settle-tiles__amount">{{ format(summary().leftToSettleCents) }}</span>
+      <span class="settle-tiles__note">{{ paymentsNote(summary().suggestionCount) }}</span>
+    </h2>
+    <h2 class="settle-tiles__tile settle-tiles__tile--total">
+      <span class="settle-tiles__label">Total spent</span>
+      <span class="settle-tiles__amount">{{ format(summary().totalSpentCents) }}</span>
+      <span class="settle-tiles__note">{{ expensesNote(summary().expenseCount) }}</span>
+    </h2>
+  </div>
+</section>

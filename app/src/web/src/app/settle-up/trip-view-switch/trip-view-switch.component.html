@@ -1,0 +1,18 @@
+<div class="trip-view-switch" role="group" aria-label="Trip view">
+  <button
+    type="button"
+    class="trip-view-switch__option"
+    [attr.aria-pressed]="view() === 'expenses'"
+    (click)="select('expenses')"
+  >
+    Expenses
+  </button>
+  <button
+    type="button"
+    class="trip-view-switch__option"
+    [attr.aria-pressed]="view() === 'settle-up'"
+    (click)="select('settle-up')"
+  >
+    Settle up
+  </button>
+</div>
