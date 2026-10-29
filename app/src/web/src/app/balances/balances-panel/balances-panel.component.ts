@@ -11,9 +11,10 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { filter } from 'rxjs';
+import { filter, merge } from 'rxjs';
 import { GENERIC_ERROR_MESSAGE, problemType } from '../../core/errors/problem-mapper';
 import { ExpensesService } from '../../expenses/expenses.service';
+import { SettleUpService } from '../../settle-up/settle-up.service';
 import { balanceTagText } from '../balance-tag';
 import { barWidthPercent } from '../bar-scale';
 import { BalanceList, BalancesService, PersonBalance } from '../balances.service';
@@ -35,6 +36,7 @@ export const INCONSISTENT_MESSAGE = 'Balances could not be checked. Please try a
 export class BalancesPanelComponent implements OnInit {
   private readonly balancesService = inject(BalancesService);
   private readonly expensesService = inject(ExpensesService);
+  private readonly settleUpService = inject(SettleUpService);
   private readonly destroyRef = inject(DestroyRef);
 
   /** The trip whose balances are listed. */
@@ -68,7 +70,8 @@ export class BalancesPanelComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     // F5.AC7: an expense added or deleted on this trip changes the balances, so reload them.
-    this.expensesService.expensesChanged
+    // F6.R10: a payment recorded or deleted on this trip changes them too.
+    merge(this.expensesService.expensesChanged, this.settleUpService.paymentsChanged)
       .pipe(
         filter((tripId) => tripId === this.tripId()),
         takeUntilDestroyed(this.destroyRef),

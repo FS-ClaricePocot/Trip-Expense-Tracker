@@ -14,6 +14,7 @@ import { filter } from 'rxjs';
 import { GENERIC_ERROR_MESSAGE } from '../../core/errors/problem-mapper';
 import { ExpensesService } from '../../expenses/expenses.service';
 import { formatCentsGrouped } from '../../expenses/money';
+import { pluralize } from '../../settle-up/pluralize';
 import { BalancesService, TripSummary } from '../balances.service';
 
 /**
@@ -41,6 +42,11 @@ export class SummaryTilesComponent implements OnInit {
   protected readonly failed = signal(false);
   protected readonly genericMessage = GENERIC_ERROR_MESSAGE;
   protected readonly format = formatCentsGrouped;
+
+  /** "in 1 payment", "in 2 payments", "in 0 payments" (F5.R8, F6 spec). */
+  protected paymentsNote(count: number): string {
+    return `in ${pluralize(count, 'payment', 'payments')}`;
+  }
 
   async ngOnInit(): Promise<void> {
     // F5.R7: an expense added or deleted on this trip changes the totals, so reload them.

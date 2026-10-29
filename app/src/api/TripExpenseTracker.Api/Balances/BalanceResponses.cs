@@ -25,8 +25,8 @@ public sealed record BalanceListResponse(long TotalCents, IReadOnlyList<BalanceP
 }
 
 /// <summary>The trip page tiles (F5.R8). Integer cents only.</summary>
-public sealed record BalanceSummaryResponse(long TotalSpentCents, long LeftToSettleCents)
+public sealed record BalanceSummaryResponse(long TotalSpentCents, long LeftToSettleCents, int SuggestionCount)
 {
-    public static BalanceSummaryResponse From(BalanceSummary summary) =>
-        new(summary.TotalSpentCents, summary.LeftToSettleCents);
+    public static BalanceSummaryResponse From(BalanceSummary summary, int suggestionCount) =>
+        new(summary.TotalSpentCents, summary.LeftToSettleCents, suggestionCount);
 }

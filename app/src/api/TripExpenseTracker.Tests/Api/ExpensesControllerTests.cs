@@ -27,6 +27,7 @@ public class ExpensesControllerTests
     private readonly FakeExpenseDao _expenses;
     private readonly FakeTransaction _transaction = new();
     private readonly FakeTimeProvider _time = new(Start);
+    private readonly FakeTripLock _tripLock = new();
     private readonly Trip _annasTrip;
 
     public ExpensesControllerTests()
@@ -34,6 +35,7 @@ public class ExpensesControllerTests
         _expenses = new FakeExpenseDao(_people);
         _annasTrip = new Trip(Guid.NewGuid(), Anna, "Paris 2026", Start);
         _trips.Add(_annasTrip);
+        _tripLock.Own(Anna, _annasTrip.Id);
         _trips.Add(new Trip(Guid.NewGuid(), Ben, "Ben's trip", Start));
     }
 
@@ -307,7 +309,7 @@ public class ExpensesControllerTests
     }
 
     private ExpensesController Sut() =>
-        new(new ExpenseService(_expenses, _people, _trips, _transaction, _time), new FakeCurrentUser(Anna));
+        new(new ExpenseService(_expenses, _people, _trips, _transaction, _time, _tripLock), new FakeCurrentUser(Anna));
 
     /// <summary>A request with the given fields. Participants are passed as a list, as the JSON body carries them.</summary>
     private static CreateExpenseRequest Request(string? description, string? amount, Guid? payer, params Guid[] participants) =>

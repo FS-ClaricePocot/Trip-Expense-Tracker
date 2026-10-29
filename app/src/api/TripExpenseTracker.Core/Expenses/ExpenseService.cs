@@ -1,6 +1,7 @@
 using TripExpenseTracker.Core.Auth;
 using TripExpenseTracker.Core.Money;
 using TripExpenseTracker.Core.People;
+using TripExpenseTracker.Core.Payments;
 using TripExpenseTracker.Core.Trips;
 
 namespace TripExpenseTracker.Core.Expenses;
@@ -9,7 +10,8 @@ namespace TripExpenseTracker.Core.Expenses;
 /// Expense add, list and delete rules (F4.R1, R4 to R9, R12 to R15). Text and amount are checked with the pure
 /// rules first, then the trip, its people and the trip total are checked inside one transaction, so the insert of
 /// the expense and its participants is all or nothing (architecture rule: transactions). Every call is for one owner,
-/// and the trip must belong to the owner before any expense is read or changed (F4.R15).
+/// and the trip must belong to the owner before any expense is read or changed (F4.R15). Add and delete take the
+/// trip lock first, so they serialise with "Mark as paid" on the same trip (F6.R18).
 /// </summary>
 public sealed class ExpenseService
 {
@@ -18,19 +20,22 @@ public sealed class ExpenseService
     private readonly ITripDao _trips;
     private readonly IAuthTransaction _transaction;
     private readonly TimeProvider _time;
+    private readonly ITripLock _tripLock;
 
     public ExpenseService(
         IExpenseDao expenses,
         IPersonDao people,
         ITripDao trips,
         IAuthTransaction transaction,
-        TimeProvider time)
+        TimeProvider time,
+        ITripLock tripLock)
     {
         _expenses = expenses;
         _people = people;
         _trips = trips;
         _transaction = transaction;
         _time = time;
+        _tripLock = tripLock;
     }
 
     /// <summary>
@@ -67,6 +72,12 @@ public sealed class ExpenseService
         {
             return await _transaction.RunAsync<ExpenseAddResult>(async token =>
             {
+                // The lock comes first (F6.R18). A foreign or missing trip is refused here, the same as F4.R15.
+                if (!await _tripLock.LockAsync(owner, tripId, token))
+                {
+                    return ExpenseAddResult.Refused(ExpenseFailure.NotFound);
+                }
+
                 if (await _trips.GetAsync(owner, tripId, token) is null)
                 {
                     return ExpenseAddResult.Refused(ExpenseFailure.NotFound);
@@ -146,9 +157,18 @@ public sealed class ExpenseService
     /// <summary>Deletes one expense on the owner's trip. Anything else is not found (F4.R9, R15).</summary>
     public async Task<ExpenseDeleteResult> DeleteAsync(Guid owner, Guid tripId, Guid expenseId, CancellationToken cancellationToken)
     {
-        return await _expenses.DeleteAsync(owner, tripId, expenseId, cancellationToken)
-            ? ExpenseDeleteResult.Done()
-            : ExpenseDeleteResult.Refused(ExpenseFailure.NotFound);
+        return await _transaction.RunAsync<ExpenseDeleteResult>(async token =>
+        {
+            // The trip lock comes first, in the same transaction as the delete (F6.R18).
+            if (!await _tripLock.LockAsync(owner, tripId, token))
+            {
+                return ExpenseDeleteResult.Refused(ExpenseFailure.NotFound);
+            }
+
+            return await _expenses.DeleteAsync(owner, tripId, expenseId, token)
+                ? ExpenseDeleteResult.Done()
+                : ExpenseDeleteResult.Refused(ExpenseFailure.NotFound);
+        }, cancellationToken);
     }
 
     /// <summary>Builds the item with each participant's share in seq order (F4.R7). Shares are never stored.</summary>

@@ -1,0 +1,13 @@
+<div class="mark-payment">
+  <h2 id="mark-payment-title" class="mark-payment__title">Mark this payment as paid?</h2>
+  <div id="mark-payment-body" class="mark-payment__body">
+    <p>{{ data.suggestion.payerName }} pays {{ data.suggestion.payeeName }} {{ amount }}. This records that the money has moved outside the app.</p>
+  </div>
+  @if (errorMessage(); as message) {
+    <p class="mark-payment__error" role="alert">{{ message }}</p>
+  }
+  <div class="mark-payment__actions">
+    <button type="button" class="mark-payment__confirm" [disabled]="submitting()" (click)="confirm()">Mark as paid</button>
+    <button type="button" class="mark-payment__cancel" (click)="cancel()">Cancel</button>
+  </div>
+</div>

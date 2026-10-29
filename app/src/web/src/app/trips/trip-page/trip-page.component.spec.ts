@@ -334,4 +334,42 @@ describe('TripPageComponent', () => {
     expect(getComputedStyle(layout).gridTemplateColumns.split(' ').length).toBe(1);
     expect(main.scrollWidth).toBeLessThanOrEqual(main.clientWidth);
   });
+
+  it('opens on Expenses, and Settle up shows the three settle tiles in order and the Balances panel (F6.R12, F6.R13)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await settle(harness);
+
+    expect(screen.getByRole('button', { name: 'Expenses' }).getAttribute('aria-pressed')).toBe('true');
+    expect(document.querySelector('.trip-page__layout')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settle up' }));
+    harness.detectChanges();
+    // The view and the Suggested payments panel each request settle-up once (F6.T9).
+    const settleRequests = http.match('/api/trips/trip-1/settle-up');
+    expect(settleRequests.length).toBe(2);
+    settleRequests.forEach((request) =>
+      request.flush({
+        suggestions: [],
+        payments: [],
+        paidBackCents: 0,
+        owedCents: 0,
+        leftToSettleCents: 0,
+        suggestionCount: 0,
+        percentage: null,
+        totalSpentCents: 0,
+        expenseCount: 0,
+      }),
+    );
+    http.match('/api/trips/trip-1/balances').forEach((request) => request.flush({ totalCents: 0, people: [] }));
+    await settle(harness);
+
+    expect(screen.getByRole('button', { name: 'Settle up' }).getAttribute('aria-pressed')).toBe('true');
+    expect(document.querySelector('.trip-page__layout')).toBeNull();
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent ?? '');
+    expect(headings[0]).toContain('Paid back so far');
+    expect(headings[1]).toContain('Left to settle');
+    expect(headings[2]).toContain('Total spent');
+    expect(document.querySelector('app-balances-panel')).toBeTruthy();
+  });
 });

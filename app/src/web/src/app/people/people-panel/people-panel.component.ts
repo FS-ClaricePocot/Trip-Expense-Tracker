@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   OnInit,
   computed,
@@ -12,7 +13,9 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors } from '@angular/forms';
+import { filter, merge } from 'rxjs';
 import {
   GENERIC_ERROR_MESSAGE,
   PERSON_NAME_REQUIRED_MESSAGE,
@@ -21,6 +24,8 @@ import {
   personNameErrorMessage,
   problemType,
 } from '../../core/errors/problem-mapper';
+import { ExpensesService } from '../../expenses/expenses.service';
+import { SettleUpService } from '../../settle-up/settle-up.service';
 import { Person, PeopleService } from '../people.service';
 import { RemovePersonDialogComponent, RemovePersonDialogData, RemovePersonResult } from '../remove-person-dialog/remove-person-dialog.component';
 
@@ -53,6 +58,9 @@ function nameValidator(control: AbstractControl): ValidationErrors | null {
 })
 export class PeoplePanelComponent implements OnInit {
   private readonly peopleService = inject(PeopleService);
+  private readonly expensesService = inject(ExpensesService);
+  private readonly settleUpService = inject(SettleUpService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(Dialog);
 
   /** The trip whose people are listed. */
@@ -88,6 +96,14 @@ export class PeoplePanelComponent implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
+    // The In expenses and In payments tags come from the server, so reload when an expense or payment
+    // on this trip is added or deleted (F3.R7). Without this the remove control shows for someone who is now in an expense.
+    merge(this.expensesService.expensesChanged, this.settleUpService.paymentsChanged)
+      .pipe(
+        filter((tripId) => tripId === this.tripId()),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => void this.reload());
     try {
       this.setPeople(await this.peopleService.list(this.tripId()));
     } catch (error: unknown) {

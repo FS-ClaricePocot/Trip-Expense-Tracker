@@ -24,12 +24,13 @@ public sealed record BalanceListResult(IReadOnlyList<PersonBalance>? Balances, B
 }
 
 /// <summary>The trip page tiles, or the reason they were refused
-/// (<see cref="BalanceServiceFailure.NotFound"/> only). Never both.</summary>
-public sealed record BalanceSummaryResult(BalanceSummary? Summary, BalanceServiceFailure? Failure)
+/// (<see cref="BalanceServiceFailure.NotFound"/> only). Never both. SuggestionCount is the number of suggested payments
+/// behind Left to settle ("in {n} payments", F5.R8, F6.R2); it is 0 when refused.</summary>
+public sealed record BalanceSummaryResult(BalanceSummary? Summary, BalanceServiceFailure? Failure, int SuggestionCount = 0)
 {
     public bool Succeeded => Summary is not null;
 
-    public static BalanceSummaryResult Found(BalanceSummary summary) => new(summary, null);
+    public static BalanceSummaryResult Found(BalanceSummary summary, int suggestionCount = 0) => new(summary, null, suggestionCount);
 
     public static BalanceSummaryResult Refused(BalanceServiceFailure failure) => new(null, failure);
 }

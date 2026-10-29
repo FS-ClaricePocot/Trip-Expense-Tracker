@@ -124,6 +124,23 @@ public class BalanceServiceTests
         result.Failure.Should().Be(BalanceServiceFailure.BalancesInconsistent);
     }
 
+    /// <summary>A recorded payment changes the balances and the "in {n} payments" count (F5.R8, F6.R10, F6.R11).</summary>
+    [Fact]
+    public async Task Summary_counts_the_suggested_payments_left_after_a_recorded_payment()
+    {
+        // Sam paid 30.00 for Alex and Jo: two suggestions (Alex and Jo each pay Sam). Alex pays Sam 15.00, one is left.
+        _balances.Snapshot = new BalanceSnapshot(People, [SamPaidThirtyForAlexAndJo()]);
+        var unpaid = await Sut().GetSummaryAsync(Anna, TripId, CancellationToken.None);
+
+        _balances.Snapshot = new BalanceSnapshot(People, [SamPaidThirtyForAlexAndJo()], [new BalancePayment(Alex, Sam, 1500)]);
+        var paid = await Sut().GetSummaryAsync(Anna, TripId, CancellationToken.None);
+
+        unpaid.SuggestionCount.Should().Be(2);
+        unpaid.Summary!.LeftToSettleCents.Should().Be(3000);
+        paid.SuggestionCount.Should().Be(1);
+        paid.Summary!.LeftToSettleCents.Should().Be(1500);
+    }
+
     private static BalanceExpense SamPaidThirtyForAlexAndJo() =>
         new(3000, Sam, [(Alex, 2), (Jo, 3)]);
 

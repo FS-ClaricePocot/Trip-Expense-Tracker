@@ -1,0 +1,8 @@
+/* The tiles and the Balances panel stack in one column, with the same gap as the trip page panels. */
+.settle-up-view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-sizing: border-box;
+  width: 100%;
+}

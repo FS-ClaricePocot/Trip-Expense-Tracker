@@ -329,7 +329,7 @@ public class PeopleControllerTests
 
         public HashSet<Guid> InUse { get; } = new();
 
-        public Task<IReadOnlyCollection<Guid>> GetPersonIdsInUseAsync(Guid tripId, CancellationToken cancellationToken) =>
+        public Task<IReadOnlyCollection<Guid>> GetPersonIdsInUseAsync(Guid owner, Guid tripId, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyCollection<Guid>>(InUse.ToList());
     }
 }

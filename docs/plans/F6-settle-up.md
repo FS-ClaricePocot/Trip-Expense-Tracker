@@ -1,6 +1,6 @@
 # F6 — Settle up: Implementation plan
 
-_Status: Approved · Last updated: 2026-10-22 · Spec: [F6-settle-up](../specs/features/F6-settle-up.md) (Approved, last updated 2026-10-21)_
+_Status: Approved · Last updated: 2026-10-29 · Spec: [F6-settle-up](../specs/features/F6-settle-up.md) (Approved, last updated 2026-10-21)_
 
 ## Overview
 F6 proposes the fewest payments the app can, using the balances from F5, and lets the user mark each suggestion as paid. A recorded payment changes the balances, so the suggestions update until every balance is zero. It adds the `payments` table, the settle-up and payment endpoints, and the Settle up view: the view switch, three summary tiles, the Suggested payments panel with its dialogs, and the Payments made list. It replaces the zero payment terms in F5's formula and registers the real "in use" source for payments with F3's people service. F6 is the last MVP build step (F1 → F6).
@@ -19,7 +19,7 @@ F6 proposes the fewest payments the app can, using the balances from F5, and let
 | Area | Files / modules | Change |
 |---|---|---|
 | Migration (DbUp) | `TripExpenseTracker.Data/Migrations/0005_create_payments.sql` | `payments` table with composite keys to `people` |
-| `TripExpenseTracker.Core` | `SettleUp/SuggestionRules.cs`, `SettleUp/SuggestedPayment.cs`, `SettleUp/Progress.cs`, `Payments/Payment.cs`, `Payments/PaymentRules.cs`, `Payments/IPaymentDao.cs`, `Payments/PaymentService.cs`, `Payments/SettleUpService.cs`, `IUnitOfWork.cs` (trip lock) | Suggestion rule, percentage, payment rules and service, trip lock |
+| `TripExpenseTracker.Core` | `SettleUp/SuggestionRules.cs`, `SettleUp/SuggestedPayment.cs`, `SettleUp/Progress.cs`, `Payments/Payment.cs`, `Payments/PaymentRules.cs`, `Payments/IPaymentDao.cs`, `Payments/PaymentService.cs`, `Payments/SettleUpService.cs`, `Payments/ITripLock.cs` (trip lock) | Suggestion rule, percentage, payment rules and service, trip lock |
 | `TripExpenseTracker.Data` | `PaymentDao.cs`, `PaymentUsageSource.cs`, `TripLock.cs`; small changes to `BalanceDao.cs`, `ExpenseDao.cs`, `TripDao.cs` | Dapper queries, the real "in use" source, the trip lock, the payments read |
 | `TripExpenseTracker.Api` | `Controllers/PaymentsController.cs`, `Controllers/SettleUpController.cs`, request and response records | Settle-up read, mark as paid, delete payment |
 | Angular (`app/src/web/src/app/settle-up/`) | `settle-up.service.ts`, `trip-view-switch/`, `summary-tiles-settle/`, `suggested-payments-panel/`, `mark-payment-dialog/`, `delete-payment-dialog/`, `payments-made-list/`, `settle-up-view/`, `pluralize.ts`, `date-format.ts` | The Settle up view and its parts |
@@ -29,7 +29,7 @@ F6 proposes the fewest payments the app can, using the balances from F5, and let
 Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Money is `long` cents.** The suggestion rule, the percentage and the amounts are integer arithmetic. The percentage uses `Int128` for the multiplication, so it cannot overflow. The client sends the amount it saw as integer cents.
 - **Multi-record writes in one transaction.** Marking a payment as paid does three things in one unit of work: lock the trip, recompute the suggestions, and insert the payment (F6.R18, CLAUDE.md).
-- **The trip lock.** `IUnitOfWork` gains `LockTripAsync(tripId)`, which runs `SELECT id FROM trips WHERE id = @trip AND owner_user_id = @owner FOR UPDATE`. Mark, delete and the expense writes all take it. It serialises changes to a trip's money, so a suggestion is never checked against balances that are changing underneath it.
+- **The trip lock.** Core defines `ITripLock` (`LockAsync(owner, tripId, ct)`, returns `bool`). Data implements it as `TripLock` on the unit of work, running `SELECT id FROM trips WHERE id = @trip AND owner_user_id = @owner FOR UPDATE`. Mark, delete and the expense writes all take it. It serialises changes to a trip's money, so a suggestion is never checked against balances that are changing underneath it. `IUnitOfWork` is not changed, because Core cannot reference Data.
 - **Ownership in every query.** Every payment query joins `trips` and filters on the owner (F6.R15). Foreign and missing trips return the same `404`.
 - **Parameterized SQL only.**
 - **Time from `TimeProvider`**, stored as UTC. The date is shown in the browser's local time zone (spec, Edge cases).
@@ -78,8 +78,9 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
   - No `PUT` or `PATCH` exists (F6.R9).
   - No paging, because the number of payments is not limited.
   - The Settle up view reads the Balances panel from `GET /api/trips/{tripId}/balances` (F5), unchanged (F6.R13).
-- **In-use source (F3.R7):** `PaymentUsageSource` implements `IPersonUsageSource` with `Kind = Payment`. It returns the payers and payees of the trip's payments, filtered by `trip_id`.
+- **In-use source (F3.R7):** `PaymentUsageSource` implements `IPersonUsageSource` with `Kind = Payment`. It returns the payers and payees of the trip's payments, joined to `trips` and filtered by the trip and its `owner_user_id`.
 - **Trip detail:** `GET /api/trips/{id}` (F2) returns the real `paymentCount`.
+- **Summary tiles:** `GET /api/trips/{tripId}/summary` (F5) gains `suggestionCount`, the length of the suggestion list. The trip page's "in {n} payments" note uses it.
 - **Browser storage:** none.
 
 ## Tasks
@@ -116,7 +117,7 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Done when:** the tests pass and no `double` or `float` appears in these files.
 
 ### F6.T3 — Core: payment rules, trip lock and services
-- **Files:** `TripExpenseTracker.Core/Payments/Payment.cs`, `PaymentRules.cs`, `IPaymentDao.cs`, `PaymentService.cs`, `SettleUpService.cs`; `TripExpenseTracker.Core/IUnitOfWork.cs` (adds `LockTripAsync`); unit tests.
+- **Files:** `TripExpenseTracker.Core/Payments/Payment.cs`, `PaymentRules.cs`, `IPaymentDao.cs`, `PaymentService.cs`, `SettleUpService.cs`; `TripExpenseTracker.Core/Payments/ITripLock.cs`; unit tests.
 - **Change:**
   - `PaymentRules` refuses payer equal to payee (`payer_payee_same`) and an amount of 0 or less (`amount_not_positive`) (F6.R6).
   - `PaymentService.MarkPaidAsync(owner, tripId, payer, payee, amountCents)`: inside one unit of work, lock the trip (refuses foreign and missing trips as "not found"), load balances through F5's `BalanceService` logic, recompute suggestions with T2, and check that one suggestion has the same payer, payee and amount. If none does, return `suggestions_changed` and insert nothing (F6.R18). Otherwise insert the payment with `markedPaidAt` from `TimeProvider`.
@@ -140,7 +141,7 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Change:**
   - `TripLock.LockAsync(owner, tripId)`: `SELECT id FROM trips WHERE id = @trip AND owner_user_id = @owner FOR UPDATE` on the unit of work's transaction. Zero rows is not found.
   - `PaymentDao`: insert, list newest first by `seq`, and delete with the owner join. Delete returns the affected row count.
-  - `PaymentUsageSource.GetPersonIdsAsync(tripId)`: payers and payees, filtered by `trip_id` (F3.R7).
+  - `PaymentUsageSource.GetPersonIdsInUseAsync(owner, tripId)`: payers and payees, joined to `trips` and filtered by the trip and its `owner_user_id` (F3.R7).
 - **Covers:** F6.R7, F6.R8, F6.R15, F6.R16 (in-use source), F6.AC6, F6.AC15, F6.AC16 (DAO side).
 - **Tests:** none automated (unit tests only; the DAO is SQL). **Code review checklist:**
   - `TripLock` runs `SELECT ... FOR UPDATE` filtered by the owner, on the unit of work's transaction, and zero rows is "not found". This is what stops two simultaneous Mark as paid calls from recording the same suggestion twice (F6.R18);
@@ -153,7 +154,7 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 
 ### F6.T5 — Cross-feature changes: F2, F3, F4 and F5 code (touches approved plans)
 - **Files:**
-  - **F4:** `ExpenseService` and `ExpenseDao` add and delete paths take the trip lock (F4.T3, F4.T4).
+  - **F4:** `ExpenseService` and `ExpenseDao` add and delete paths take the trip lock (F4.T3, F4.T4). `ExpenseService` takes `ITripLock` as its last constructor argument. Add and delete take the lock first, and delete runs in a transaction. Two existing test setup lines (`ExpenseServiceTests`, `ExpensesControllerTests`) change to pass a fake lock. No assertion changes.
   - **F5:** `BalanceDao` reads payments; `BalanceCalculator` uses the payment terms; the "Left to settle" tile shows "in {n} payments" (F5.T5, F5.T6).
   - **F3:** `PaymentUsageSource` is registered with the people service (`Program.cs`).
   - **F2:** `TripDao` detail returns the real `paymentCount` (F2.T4).
@@ -392,3 +393,8 @@ Unit tests only (project rules).
 - 2026-10-21: F5.AC13 settled as F5 only. You approved retiring the F5 card test in F6.T12, which replaces it with F6.AC17–AC21.
 - 2026-10-22: Test scope reduced to unit tests only, following the project rules change. T1 and T4 lose their integration tests and get review checklists and manual checks instead; T5's integration tests become Core unit tests (the F5 formula with payments, Example 3, the F4 lock call) plus a review; T6's endpoint tests become controller unit tests with fakes; T12's integration assertions become unit tests with a counting fake and a review; F6.T11 (Playwright end-to-end) is removed and its ID is not reused. F3 no longer has a payment stand-in test to replace. F1's existing integration and e2e tests stay and must pass. Status set back to Draft for re-approval.
 - 2026-10-22: Approve the plan with unit tests only? → Yes. Status set to Approved.
+- 2026-10-29: _(Approved by you.)_ The trip lock is `ITripLock` in Core, implemented in Data, because `IUnitOfWork` lives in Data and Core cannot reference it. Replaces the `IUnitOfWork.LockTripAsync` design.
+- 2026-10-29: _(Approved by you.)_ `ExpenseService` gains an `ITripLock` constructor argument, and two test setup lines change. No assertions change.
+- 2026-10-29: _(Approved by you.)_ `GET /api/trips/{tripId}/summary` gains `suggestionCount`, needed for the "in {n} payments" note. The plan did not list it.
+- 2026-10-29: _(PR review fix, approved by you.)_ `IPersonUsageSource.GetPersonIdsInUseAsync` takes the owner, and both usage sources (F4's `ExpenseUsageSource`, F6's `PaymentUsageSource`) join `trips` and filter on `owner_user_id`, like every other trip-scoped query. Before, they filtered on `trip_id` only and relied on the caller's ownership check. This also changes F3's interface and F4's source; see the F3 plan log.
+- 2026-10-29: _(PR review fix, approved by you.)_ `IPaymentDao.InsertAsync` returns a `PaymentInsertOutcome` instead of a bool. When the composite foreign key refuses the row (a payer or payee removed after the service checked), the constraint name says which side, and the service returns `PayerNotOnTrip` or `PayeeNotOnTrip` (400) instead of not found.

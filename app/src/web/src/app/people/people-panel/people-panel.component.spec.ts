@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { fireEvent, screen, within } from '@testing-library/angular';
+import { ExpensesService, NewExpense } from '../../expenses/expenses.service';
 import { Person } from '../people.service';
 import { PeoplePanelComponent } from './people-panel.component';
 
@@ -89,6 +90,19 @@ describe('PeoplePanelComponent', () => {
     const item = screen.getByRole('listitem');
     expect(within(item).getByText('In expenses')).toBeTruthy();
     expect(within(item).queryByRole('button')).toBeNull();
+  });
+
+  it('reloads the list when an expense is added on this trip, so the tag replaces the remove control (F3.R7)', async () => {
+    await renderWith([person('p1', 'Sam')]);
+    expect(screen.getByRole('button', { name: 'Remove Sam' })).toBeTruthy();
+
+    void TestBed.inject(ExpensesService).add('trip-1', {} as NewExpense);
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/expenses' }).flush({}, { status: 201, statusText: 'Created' });
+    http.expectOne('/api/trips/trip-1/people').flush([person('p1', 'Sam', true, false)]);
+    await settle();
+
+    expect(screen.getByText('In expenses')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Remove Sam' })).toBeNull();
   });
 
   it('shows "In payments" for a person only in a payment (F3.AC9)', async () => {

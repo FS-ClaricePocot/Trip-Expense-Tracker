@@ -1,0 +1,25 @@
+<section class="payments-made" aria-labelledby="payments-made-heading">
+  <div class="payments-made__header">
+    <h2 id="payments-made-heading" class="payments-made__title">Payments made</h2>
+    <p class="payments-made__count">{{ countText() }}</p>
+  </div>
+  <p class="payments-made__notice" role="status">{{ notice() }}</p>
+  @if (payments().length === 0) {
+    <p class="payments-made__empty">{{ emptyMessage }}</p>
+  } @else {
+    <ul class="payments-made__list">
+      @for (payment of payments(); track payment.id) {
+        <li class="payments-made__row">
+          <div class="payments-made__text">
+            <p class="payments-made__pair">{{ payment.payerName }} paid {{ payment.payeeName }}</p>
+            <p class="payments-made__date">Marked paid · {{ markedDate(payment) }}</p>
+          </div>
+          <span class="payments-made__amount">{{ format(payment.amountCents) }}</span>
+          <button type="button" class="payments-made__delete" [attr.aria-label]="deleteLabel(payment)" (click)="openDelete(payment)">
+            <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /></svg>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</section>
