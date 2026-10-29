@@ -20,6 +20,7 @@ import {
   MarkPaymentDialogData,
   MarkPaymentResult,
 } from '../mark-payment-dialog/mark-payment-dialog.component';
+import { PaymentsMadeListComponent } from '../payments-made-list/payments-made-list.component';
 import { SettleUp, SettleUpService, SuggestedPayment } from '../settle-up.service';
 import { SuggestedPaymentsPanelComponent } from '../suggested-payments-panel/suggested-payments-panel.component';
 import { SummaryTilesSettleComponent } from '../summary-tiles-settle/summary-tiles-settle.component';
@@ -28,13 +29,18 @@ import { SummaryTilesSettleComponent } from '../summary-tiles-settle/summary-til
 export const PAYMENT_RECORDED_MESSAGE = 'Payment recorded.';
 
 /**
- * The Settle up view (F6.R12, F6.R13): the three tiles, the Suggested payments panel, then the Balances
- * panel from F5, unchanged. Mark as paid opens its confirmation here. The view loads its figures when it
+ * The Settle up view (F6.R12, F6.R13): the three tiles, the Suggested payments panel, the Payments made
+ * list, then the Balances panel from F5, unchanged. Mark as paid opens its confirmation here. The view loads its figures when it
  * opens; the Expenses view is a separate view, so it reloads on return.
  */
 @Component({
   selector: 'app-settle-up-view',
-  imports: [SummaryTilesSettleComponent, SuggestedPaymentsPanelComponent, BalancesPanelComponent],
+  imports: [
+    SummaryTilesSettleComponent,
+    SuggestedPaymentsPanelComponent,
+    PaymentsMadeListComponent,
+    BalancesPanelComponent,
+  ],
   templateUrl: './settle-up-view.component.html',
   styleUrl: './settle-up-view.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -100,7 +106,8 @@ export class SettleUpViewComponent implements OnInit {
     }
   }
 
-  private async load(): Promise<void> {
+  /** Reloads the settle-up figures. The Payments made list calls it when a delete finds the payment gone. */
+  protected async load(): Promise<void> {
     try {
       this.settleUp.set(await this.settleUpService.get(this.tripId()));
       this.failed.set(false);

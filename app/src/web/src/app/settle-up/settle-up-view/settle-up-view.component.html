@@ -8,5 +8,8 @@
   }
   <p class="settle-up-view__status" role="status">{{ notice() }}</p>
   <app-suggested-payments-panel [tripId]="tripId()" (tripGone)="tripGone.emit()" (markPaid)="openMark($event)" />
+  @if (settleUp(); as current) {
+    <app-payments-made-list [tripId]="tripId()" [payments]="current.payments" (refresh)="load()" />
+  }
   <app-balances-panel [tripId]="tripId()" (tripGone)="tripGone.emit()" />
 </section>
