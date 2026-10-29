@@ -2,11 +2,63 @@ main {
   display: grid;
   gap: 16px;
   padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
   justify-items: start;
+  /* The columns below follow the width this page gets, so a narrow view stacks (F5.R8, F5.R5). */
+  container-type: inline-size;
+}
+
+/* One column on a phone: tiles, Expenses, Balances, then People. */
+.trip-page__layout {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Two columns when there is room (mockup): tiles across the top, Expenses on the left, Balances and then People on the right. */
+@container (min-width: 720px) {
+  .trip-page__layout {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    grid-template-areas:
+      'tiles tiles'
+      'expenses balances'
+      'expenses people';
+    align-items: start;
+  }
+
+  .trip-page__layout > app-summary-tiles {
+    grid-area: tiles;
+  }
+
+  .trip-page__layout > app-expenses-panel {
+    grid-area: expenses;
+  }
+
+  .trip-page__layout > app-balances-panel {
+    grid-area: balances;
+  }
+
+  .trip-page__layout > app-people-panel {
+    grid-area: people;
+  }
+}
+
+/* Title on the left, Delete on the right of the same row (mockup). */
+.trip-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
 }
 
 .trip-page__title {
   margin: 0;
+  color: #0b4a6f;
   font-size: 28px;
   overflow-wrap: anywhere;
 }

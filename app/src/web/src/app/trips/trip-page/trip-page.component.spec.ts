@@ -38,6 +38,14 @@ async function settle(harness: RouterTestingHarness): Promise<void> {
   TestBed.inject(HttpTestingController)
     .match('/api/trips/trip-1/expenses')
     .forEach((request) => request.flush({ total: 0, count: 0, expenses: [] }));
+  // F5.T5 stub: the Balances panel asks for the trip's balances too. Answer it with an empty list.
+  TestBed.inject(HttpTestingController)
+    .match('/api/trips/trip-1/balances')
+    .forEach((request) => request.flush({ totalCents: 0, people: [] }));
+  // F5.T6 stub: the summary tiles ask for the trip's summary too. Answer it with zeros.
+  TestBed.inject(HttpTestingController)
+    .match('/api/trips/trip-1/summary')
+    .forEach((request) => request.flush({ totalSpentCents: 0, leftToSettleCents: 0 }));
 }
 
 /** Focuses the Delete button, as a click would, then opens the dialog and returns it. */
@@ -249,5 +257,81 @@ describe('TripPageComponent', () => {
 
     expect(link.getAttribute('href')).toBe('/trips');
     expect(link.compareDocumentPosition(screen.getByRole('heading', { name: 'Paris 2026' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('puts the tiles, Expenses, Balances and then People in one layout, in reading and tab order (F5.R8, F5.R5)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await settle(harness);
+
+    await settle(harness);
+    const layout = document.querySelector('.trip-page__layout') as HTMLElement;
+    const order = Array.from(layout.children).map((child) => child.tagName);
+
+    expect(screen.getByText('Total spent')).toBeTruthy();
+    expect(order).toEqual(['APP-SUMMARY-TILES', 'APP-EXPENSES-PANEL', 'APP-BALANCES-PANEL', 'APP-PEOPLE-PANEL']);
+  });
+
+  it('shows the panels in two columns at desktop width (F5.R5, F5.R8)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await settle(harness);
+
+    const host = document.querySelector('app-trip-page') as HTMLElement;
+    host.style.display = 'block';
+    host.style.width = '960px';
+    await settle(harness);
+
+    const layout = document.querySelector('.trip-page__layout') as HTMLElement;
+    expect(getComputedStyle(layout).gridTemplateColumns.split(' ').length).toBe(2);
+  });
+
+  it('lines the Balances and People panels up with the tiles above them at desktop width (F5.R8)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await settle(harness);
+
+    const host = document.querySelector('app-trip-page') as HTMLElement;
+    host.style.display = 'block';
+    host.style.width = '960px';
+    await settle(harness);
+
+    const rightEdge = (selector: string): number => document.querySelector(selector)!.getBoundingClientRect().right;
+    const tilesRight = rightEdge('app-summary-tiles');
+    expect(Math.round(rightEdge('app-balances-panel'))).toBe(Math.round(tilesRight));
+    expect(Math.round(rightEdge('app-people-panel'))).toBe(Math.round(tilesRight));
+  });
+
+  it('centres the page content on wide screens, like the header and trip list (F5.R8)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await settle(harness);
+
+    const host = document.querySelector('app-trip-page') as HTMLElement;
+    host.style.display = 'block';
+    host.style.width = '1920px';
+    await settle(harness);
+
+    const hostBox = host.getBoundingClientRect();
+    const tilesBox = document.querySelector('app-summary-tiles')!.getBoundingClientRect();
+    const leftSpace = tilesBox.left - hostBox.left;
+    const rightSpace = hostBox.right - tilesBox.right;
+    expect(Math.round(leftSpace)).toBe(Math.round(rightSpace));
+  });
+
+  it('stacks the panels in one column at phone width with no horizontal scroll (F5.R5, F5.R8)', async () => {
+    const { harness, http } = await openTripPage();
+    http.expectOne('/api/trips/trip-1').flush(TRIP);
+    await settle(harness);
+
+    const host = document.querySelector('app-trip-page') as HTMLElement;
+    host.style.display = 'block';
+    host.style.width = '360px';
+    await settle(harness);
+
+    const layout = document.querySelector('.trip-page__layout') as HTMLElement;
+    const main = document.querySelector('app-trip-page main') as HTMLElement;
+    expect(getComputedStyle(layout).gridTemplateColumns.split(' ').length).toBe(1);
+    expect(main.scrollWidth).toBeLessThanOrEqual(main.clientWidth);
   });
 });

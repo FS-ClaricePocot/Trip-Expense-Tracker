@@ -140,6 +140,18 @@ describe('TripListComponent', () => {
     expect(getComputedStyle(count).paddingLeft).toBe(getComputedStyle(title).paddingLeft);
   });
 
+  it('shows no balance status on a trip card in F5 (F5.AC13, F5.R10; retired in F6.T12)', async () => {
+    const http = await renderList();
+    http.expectOne('/api/trips').flush([
+      tripSummary({ id: 'id-1', name: 'Lisbon', createdAt: '2026-10-03T10:00:00Z', peopleCount: 2, expenseCount: 1, totalCents: 3000 }),
+    ]);
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Lisbon' })).toBeTruthy());
+    const card = screen.getByRole('listitem');
+
+    expect(card.textContent).not.toMatch(/owe|owed|settle|balance/i);
+  });
+
   it('shows the generic error when the list request fails (F2 States)', async () => {
     const http = await renderList();
     http.expectOne('/api/trips').flush(null, { status: 500, statusText: 'Server Error' });

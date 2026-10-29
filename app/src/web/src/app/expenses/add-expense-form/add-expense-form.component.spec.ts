@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/angular';
-import { Person } from '../../people/people.service';
+import { PeopleService, Person } from '../../people/people.service';
 import { Expense } from '../expenses.service';
 import { AddExpenseFormComponent } from './add-expense-form.component';
 
@@ -236,6 +236,20 @@ describe('AddExpenseFormComponent', () => {
     expect((screen.getByLabelText('Amount') as HTMLInputElement).disabled).toBeTrue();
     expect((screen.getByLabelText('Paid by') as HTMLSelectElement).disabled).toBeTrue();
     expect((screen.getByRole('button', { name: 'Add expense' }) as HTMLButtonElement).disabled).toBeTrue();
+  });
+
+  it('enables the form when a person is added to the trip while it is open, without a reload (F4.AC10)', async () => {
+    const { http } = await renderForm([]);
+    const added = TestBed.inject(PeopleService).add('trip-1', 'Sam');
+    http.expectOne({ method: 'POST', url: '/api/trips/trip-1/people' }).flush(SAM);
+    await added;
+    http.expectOne('/api/trips/trip-1/people').flush([SAM]);
+    await settle();
+
+    expect(screen.queryByText(NO_PEOPLE)).toBeNull();
+    expect(screen.getByRole('checkbox', { name: 'Sam' })).toBeTruthy();
+    expect((screen.getByLabelText('What was it for?') as HTMLInputElement).disabled).toBeFalse();
+    expect((screen.getByRole('button', { name: 'Add expense' }) as HTMLButtonElement).disabled).toBeFalse();
   });
 
   it('shows Adding… and disables the button while the request is in flight, then resets on success (F4.R1, F4.AC9)', async () => {

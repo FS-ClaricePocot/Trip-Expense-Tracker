@@ -9,6 +9,7 @@ using TripExpenseTracker.Api.Auth;
 using TripExpenseTracker.Api.Logging;
 using TripExpenseTracker.Api.Middleware;
 using TripExpenseTracker.Core.Auth;
+using TripExpenseTracker.Core.Balances;
 using TripExpenseTracker.Core.Expenses;
 using TripExpenseTracker.Core.People;
 using TripExpenseTracker.Core.Trips;
@@ -43,11 +44,14 @@ builder.Services.AddScoped<ISessionDao, SessionDao>();
 builder.Services.AddScoped<ITripDao, TripDao>();
 builder.Services.AddScoped<IPersonDao, PersonDao>();
 builder.Services.AddScoped<IExpenseDao, ExpenseDao>();
+builder.Services.AddScoped<IBalanceDao, BalanceDao>();
 builder.Services.AddScoped<TripService>();
 // Expenses report the people they refer to, so a person in an expense is in use (F3.R7). F6 (payments) adds its source here.
 builder.Services.AddScoped<IPersonUsageSource, ExpenseUsageSource>();
 builder.Services.AddScoped<PeopleService>();
 builder.Services.AddScoped<ExpenseService>();
+// Balances are calculated on each request (F5.R7). The service only reads, and logs no amounts or names (F5.AC16).
+builder.Services.AddScoped<BalanceService>();
 
 // Auth. AuthTransaction shares the scoped unit of work with the DAOs, so register and its session insert share one transaction (F1.R7).
 builder.Services.AddScoped<IAuthTransaction>(sp =>

@@ -1,6 +1,6 @@
 # F5 — Balances: Implementation plan
 
-_Status: Approved · Last updated: 2026-10-22 · Spec: [F5-balances](../specs/features/F5-balances.md) (Approved, last updated 2026-10-20)_
+_Status: Approved · Last updated: 2026-10-29 · Spec: [F5-balances](../specs/features/F5-balances.md) (Approved, last updated 2026-10-20)_
 
 ## Overview
 F5 shows what each person on a trip is owed or owes, and checks that all balances add up to exactly zero. It adds no tables. Balances are calculated on every request from the trip's expenses (F4), with the payments term fixed at zero until F6 adds payments. It adds the balances endpoints, the Balances panel beside the Expenses panel, and the two summary tiles on the trip page. F5 is the fifth build step (F1 → F6), and F6 reuses the Balances panel unchanged.
@@ -76,8 +76,8 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - **Done when:** the tests pass and `Core` has no reference to `Data`, Npgsql or ASP.NET. No `double` or `float` appears in these files.
 
 ### F5.T2 — Data: `BalanceDao`
-- **Files:** `TripExpenseTracker.Data/BalanceDao.cs`, DI registration.
-- **Change:** one owner-checked read per request. It returns the trip's people in `seq` order, and its expenses with payer, amount, and participants with their `seq`. Every query joins `trips` and filters `owner_user_id = @owner`. The query shape is shared with F4's list where it fits, so the participant ordering is defined once.
+- **Files:** `TripExpenseTracker.Core/Balances/IBalanceDao.cs` (interface and row types, moved here from F5.T3), `TripExpenseTracker.Data/BalanceDao.cs`, DI registration.
+- **Change:** one owner-checked read per request, behind `IBalanceDao`. It returns the trip's people in `seq` order, and its expenses with payer, amount, and participants with their `seq`. Every query joins `trips` and filters `owner_user_id = @owner`. The query shape is shared with F4's list where it fits, so the participant ordering is defined once.
 - **Covers:** F5.R11, F5.R12 (DAO side), F5.AC12.
 - **Tests:** none automated (unit tests only; the DAO is SQL). **Code review checklist:**
   - every query joins `trips` and filters `owner_user_id = @owner`, so user B's read of A's trip returns the same as a missing trip (F5.AC12);
@@ -88,13 +88,13 @@ Rules from `CLAUDE.md` and `project-rules.md` that are easy to break here:
 - _Needs human review: ownership in SQL (no automated test covers it)._
 
 ### F5.T3 — Core: `BalanceService`
-- **Files:** `TripExpenseTracker.Core/Balances/IBalanceDao.cs`, `BalanceService.cs`, `BalanceResults.cs`; unit tests.
+- **Files:** `TripExpenseTracker.Core/Balances/BalanceService.cs`, `BalanceResults.cs`; unit tests. (`IBalanceDao` is defined in F5.T2.)
 - **Change:** `GetBalancesAsync(owner, tripId)` reads through `IBalanceDao`, runs T1, and returns the check result. `GetSummaryAsync(owner, tripId)` returns the T1 summary. A missing or foreign trip gives "not found" from both. Nothing is cached (Contract changes).
 - **Covers:** F5.R7, F5.R11, F5.R12, F5.AC7 (service side), F5.AC12 (service side).
 - **Tests:** unit with a fake DAO:
   - adding then deleting an expense, read through the service twice, returns the earlier balances (F5.AC7);
   - a foreign or missing trip returns "not found" for both calls;
-  - a forced inconsistency (a fake DAO returns data that does not sum to `0`) returns `balances_inconsistent`, not the balances (F5.AC16).
+  - a failed zero-sum check returns `balances_inconsistent`, not the balances (F5.AC16). The failing check itself is tested in F5.T1 (`BalanceCheck.Verify`). Here, the service's mapping of a failed check is tested through a seam: the check is injected (for example, a delegate in the constructor, defaulting to `BalanceCheck.Verify`), so a test can force a failure. The calculator always produces zero-sum data, so a fake DAO cannot trigger this path.
 - **Done when:** the tests pass.
 
 ### F5.T4 — Api: `BalancesController`
@@ -238,3 +238,4 @@ Unit tests only (project rules).
 - 2026-10-22: Test scope reduced to unit tests only, following the project rules change. T2 loses its integration tests and gets a review checklist instead; T4's endpoint tests become controller unit tests with fakes and a capturing logger; F5.T8 (Playwright end-to-end) is removed and its ID is not reused. The worked examples stay as Core unit tests (T1). F1's existing integration and e2e tests stay and must pass. Status set back to Draft for re-approval.
 - 2026-10-22: Approve the plan with unit tests only? → Yes. Status set to Approved.
 - 2026-10-22: Fix the bar-scale mismatch with the spec? → Yes (your request). F5.T5 now follows F5.R6 and F5.AC17 as written: 50.00 reaches halfway from the centre to the end (25% of the track), smaller balances are proportional, and anything above 50.00 stops at the end of the track (50%). The rule is a pure function `barWidthPercent` with unit tests. The spec is unchanged, so the plan stays Approved.
+- 2026-10-28: Two build-time changes during implementation (commit `6bac4a5`). (1) `IBalanceDao` and its row types are defined in F5.T2 instead of F5.T3, so the DAO task owns its interface. (2) The F5.AC16 service test checks how `BalanceService` maps a failed zero-sum check, through an injected check, instead of feeding inconsistent data through a fake DAO; the failing check itself stays tested in F5.T1 (`BalanceCheck.Verify`). Both change how, not what: every requirement and acceptance criterion is still covered and the spec is unchanged, so the plan stays Approved. Confirmed by the owner on 2026-10-29 after the PR review flagged it.

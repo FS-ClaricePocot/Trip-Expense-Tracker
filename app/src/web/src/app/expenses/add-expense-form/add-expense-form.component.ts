@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   OnInit,
   computed,
@@ -10,7 +11,9 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { filter } from 'rxjs';
 import {
   EXPENSE_AMOUNT_INVALID_MESSAGE,
   EXPENSE_AMOUNT_NOT_POSITIVE_MESSAGE,
@@ -101,6 +104,7 @@ export class AddExpenseFormComponent implements OnInit {
   private readonly expensesService = inject(ExpensesService);
   private readonly peopleService = inject(PeopleService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** The trip the expense is added to. */
   readonly tripId = input.required<string>();
@@ -134,6 +138,13 @@ export class AddExpenseFormComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.form.disable({ emitEvent: false });
+    // F4.AC10: someone added or removed in the People panel while this form is open, so reload the list.
+    this.peopleService.peopleChanged
+      .pipe(
+        filter((tripId) => tripId === this.tripId()),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => void this.loadPeople());
     await this.loadPeople();
   }
 
