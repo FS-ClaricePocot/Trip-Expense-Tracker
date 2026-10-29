@@ -1,6 +1,6 @@
 # F5 — Balances: Implementation plan
 
-_Status: Approved · Last updated: 2026-10-22 · Spec: [F5-balances](../specs/features/F5-balances.md) (Approved, last updated 2026-10-20)_
+_Status: Approved · Last updated: 2026-10-29 · Spec: [F5-balances](../specs/features/F5-balances.md) (Approved, last updated 2026-10-20)_
 
 ## Overview
 F5 shows what each person on a trip is owed or owes, and checks that all balances add up to exactly zero. It adds no tables. Balances are calculated on every request from the trip's expenses (F4), with the payments term fixed at zero until F6 adds payments. It adds the balances endpoints, the Balances panel beside the Expenses panel, and the two summary tiles on the trip page. F5 is the fifth build step (F1 → F6), and F6 reuses the Balances panel unchanged.
@@ -238,3 +238,4 @@ Unit tests only (project rules).
 - 2026-10-22: Test scope reduced to unit tests only, following the project rules change. T2 loses its integration tests and gets a review checklist instead; T4's endpoint tests become controller unit tests with fakes and a capturing logger; F5.T8 (Playwright end-to-end) is removed and its ID is not reused. The worked examples stay as Core unit tests (T1). F1's existing integration and e2e tests stay and must pass. Status set back to Draft for re-approval.
 - 2026-10-22: Approve the plan with unit tests only? → Yes. Status set to Approved.
 - 2026-10-22: Fix the bar-scale mismatch with the spec? → Yes (your request). F5.T5 now follows F5.R6 and F5.AC17 as written: 50.00 reaches halfway from the centre to the end (25% of the track), smaller balances are proportional, and anything above 50.00 stops at the end of the track (50%). The rule is a pure function `barWidthPercent` with unit tests. The spec is unchanged, so the plan stays Approved.
+- 2026-10-28: Two build-time changes during implementation (commit `6bac4a5`). (1) `IBalanceDao` and its row types are defined in F5.T2 instead of F5.T3, so the DAO task owns its interface. (2) The F5.AC16 service test checks how `BalanceService` maps a failed zero-sum check, through an injected check, instead of feeding inconsistent data through a fake DAO; the failing check itself stays tested in F5.T1 (`BalanceCheck.Verify`). Both change how, not what: every requirement and acceptance criterion is still covered and the spec is unchanged, so the plan stays Approved. Confirmed by the owner on 2026-10-29 after the PR review flagged it.
