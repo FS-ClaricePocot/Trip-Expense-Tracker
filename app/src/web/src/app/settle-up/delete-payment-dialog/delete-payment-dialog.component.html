@@ -1,0 +1,13 @@
+<div class="delete-payment">
+  <h2 id="delete-payment-title" class="delete-payment__title">Delete this payment?</h2>
+  <div id="delete-payment-body" class="delete-payment__body">
+    <p>{{ data.payment.payerName }} paid {{ data.payment.payeeName }} {{ amount }}. Deleting it puts the amount back into the balances.</p>
+  </div>
+  @if (errorMessage(); as message) {
+    <p class="delete-payment__error" role="alert">{{ message }}</p>
+  }
+  <div class="delete-payment__actions">
+    <button type="button" class="delete-payment__confirm" [disabled]="submitting()" (click)="confirm()">Delete payment</button>
+    <button type="button" class="delete-payment__cancel" (click)="cancel()">Cancel</button>
+  </div>
+</div>

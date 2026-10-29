@@ -22,6 +22,15 @@
     font-size: 0.875rem;
   }
 
+  &__notice {
+    margin: 12px 0 0;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #f04438;
+    border-radius: 8px;
+    color: #7a1b13;
+    background: #fef3f2;
+  }
+
   &__settled {
     display: flex;
     align-items: center;

@@ -6,5 +6,7 @@
   } @else if (settleUp(); as current) {
     <app-summary-tiles-settle [summary]="current" />
   }
+  <p class="settle-up-view__status" role="status">{{ notice() }}</p>
+  <app-suggested-payments-panel [tripId]="tripId()" (tripGone)="tripGone.emit()" (markPaid)="openMark($event)" />
   <app-balances-panel [tripId]="tripId()" (tripGone)="tripGone.emit()" />
 </section>

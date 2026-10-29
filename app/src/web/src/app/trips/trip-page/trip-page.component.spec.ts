@@ -345,17 +345,22 @@ describe('TripPageComponent', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Settle up' }));
     harness.detectChanges();
-    http.expectOne('/api/trips/trip-1/settle-up').flush({
-      suggestions: [],
-      payments: [],
-      paidBackCents: 0,
-      owedCents: 0,
-      leftToSettleCents: 0,
-      suggestionCount: 0,
-      percentage: null,
-      totalSpentCents: 0,
-      expenseCount: 0,
-    });
+    // The view and the Suggested payments panel each request settle-up once (F6.T9).
+    const settleRequests = http.match('/api/trips/trip-1/settle-up');
+    expect(settleRequests.length).toBe(2);
+    settleRequests.forEach((request) =>
+      request.flush({
+        suggestions: [],
+        payments: [],
+        paidBackCents: 0,
+        owedCents: 0,
+        leftToSettleCents: 0,
+        suggestionCount: 0,
+        percentage: null,
+        totalSpentCents: 0,
+        expenseCount: 0,
+      }),
+    );
     http.match('/api/trips/trip-1/balances').forEach((request) => request.flush({ totalCents: 0, people: [] }));
     await settle(harness);
 

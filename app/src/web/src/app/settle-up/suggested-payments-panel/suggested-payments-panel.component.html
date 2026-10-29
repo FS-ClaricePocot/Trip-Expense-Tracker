@@ -2,6 +2,9 @@
   <h2 id="suggested-heading" class="suggested-panel__title">Suggested payments</h2>
   <p class="suggested-panel__help">The fewest payments that bring every balance to zero.</p>
   <p class="suggested-panel__help">Money moves outside the app. Mark a payment as paid once it's been made.</p>
+  @if (notice(); as message) {
+    <p class="suggested-panel__notice" role="alert">{{ message }}</p>
+  }
   @if (loading()) {
     <p>Loading settle up…</p>
   } @else if (failed()) {
