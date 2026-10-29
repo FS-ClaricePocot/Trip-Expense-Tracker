@@ -16,7 +16,7 @@
     </p>
   } @else {
     <ul class="suggested-panel__list">
-      @for (suggestion of suggestions(); track $index) {
+      @for (suggestion of suggestions(); track suggestion.payerPersonId + '>' + suggestion.payeePersonId + ':' + suggestion.amountCents) {
         <li class="suggested-panel__row">
           <div class="suggested-panel__text">
             <p class="suggested-panel__pair">{{ suggestion.payerName }} pays {{ suggestion.payeeName }}</p>

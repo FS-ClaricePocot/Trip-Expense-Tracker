@@ -9,7 +9,10 @@ const EMPTY = 'No payments yet. Payments you mark as paid will appear here.';
 const DELETED = 'Payment deleted.';
 const MISSING = 'This payment no longer exists.';
 
-/** Noon UTC on 20 Oct 2026 is 20 Oct in every zone from UTC-12 to UTC+11, so the row date does not depend on the machine. */
+/**
+ * Noon UTC on 20 Oct 2026. The row shows it in the machine's zone, which can be 19, 20 or 21 Oct, so the row test
+ * checks only the format. The exact day in a fixed zone is tested in date-format.spec.ts.
+ */
 const PAY_JO_SAM: RecordedPayment = {
   id: 'pay-2',
   payerPersonId: 'p-jo',
@@ -60,13 +63,13 @@ async function openDelete(name: string): Promise<void> {
 describe('PaymentsMadeListComponent', () => {
   afterEach(() => TestBed.inject(HttpTestingController).verify());
 
-  it('shows "Jo paid Sam", 40.00 and "Marked paid · 20 Oct 2026" for a payment on that UTC date (F6.AC5, F6 spec Edge cases)', () => {
+  it('shows "Jo paid Sam", 40.00 and "Marked paid · <day> Oct 2026" in any time zone (F6.AC5, F6 spec Edge cases)', () => {
     render([PAY_JO_SAM]);
 
     const row = within(screen.getByRole('list')).getAllByRole('listitem')[0];
     expect(row.textContent).toContain('Jo paid Sam');
     expect(row.textContent).toContain('40.00');
-    expect(row.textContent).toContain('Marked paid · 20 Oct 2026');
+    expect(row.textContent).toMatch(/Marked paid · (19|20|21) Oct 2026/);
   });
 
   it('lists the payments newest first, in the order given (F6.R7, F6.AC15)', () => {
