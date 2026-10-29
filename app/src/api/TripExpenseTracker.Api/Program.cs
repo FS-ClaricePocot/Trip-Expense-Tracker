@@ -12,6 +12,7 @@ using TripExpenseTracker.Core.Auth;
 using TripExpenseTracker.Core.Balances;
 using TripExpenseTracker.Core.Expenses;
 using TripExpenseTracker.Core.People;
+using TripExpenseTracker.Core.Payments;
 using TripExpenseTracker.Core.Trips;
 using TripExpenseTracker.Data;
 
@@ -45,9 +46,14 @@ builder.Services.AddScoped<ITripDao, TripDao>();
 builder.Services.AddScoped<IPersonDao, PersonDao>();
 builder.Services.AddScoped<IExpenseDao, ExpenseDao>();
 builder.Services.AddScoped<IBalanceDao, BalanceDao>();
+// The trip lock and payment DAO share the request's unit of work, so Mark as paid runs in one transaction (F6.R18).
+builder.Services.AddScoped<ITripLock, TripLock>();
+builder.Services.AddScoped<IPaymentDao, PaymentDao>();
 builder.Services.AddScoped<TripService>();
 // Expenses report the people they refer to, so a person in an expense is in use (F3.R7). F6 (payments) adds its source here.
+// Payments report their payers and payees, so a person in a payment is in use too (F6.R16, F3.R7).
 builder.Services.AddScoped<IPersonUsageSource, ExpenseUsageSource>();
+builder.Services.AddScoped<IPersonUsageSource, PaymentUsageSource>();
 builder.Services.AddScoped<PeopleService>();
 builder.Services.AddScoped<ExpenseService>();
 // Balances are calculated on each request (F5.R7). The service only reads, and logs no amounts or names (F5.AC16).
