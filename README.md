@@ -76,7 +76,7 @@ What to know:
 
 - **Your prompts are never recorded.** Each task is described from Claude's side: its plan steps if it made a plan, otherwise the opening sentence of its reply, otherwise the tools it used (e.g. `Tools: Bash ×2, Edit ×1`). A slash command is shown in front, e.g. `/init: …`. `Task N` appears only when there is nothing else to go on, such as a prompt interrupted before Claude did anything.
 - **Logs cover your sessions only.** They are built from the transcripts on your machine.
-- **Logs are not committed.** `docs/activities-outputs/session-logs/` is in `.gitignore`, so the logs stay on your machine.
+- **Logs are committed** as evidence of each session's models and token use. Commit them with the work they belong to. Only `.hook-errors.log` stays out of git (see `.gitignore`).
 - **Files are regenerated, don't edit them.** Each run rebuilds the logs from the session transcript.
 - **Worktrees log separately.** A session in a Claude desktop-app worktree writes to that worktree's own `docs/activities-outputs/session-logs/`.
 - **Dates use your local time zone.**

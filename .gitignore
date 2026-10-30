@@ -1,5 +1,5 @@
-# Session logs and hook errors (machine-specific; not shared for now)
-docs/activities-outputs/session-logs/
+# Session logs are committed as evidence of spend. Hook errors are machine-specific.
+docs/activities-outputs/session-logs/.hook-errors.log
 
 # Local OpenRouter launcher (not shared for now)
 claude-openrouter.ps1
