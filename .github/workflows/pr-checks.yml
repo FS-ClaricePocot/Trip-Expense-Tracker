@@ -11,7 +11,10 @@
 #
 # Needs the repository secret OPENROUTER_API_KEY and the Claude GitHub app installed on the repo.
 # This file must be identical on the default branch (develop), or the Claude action skips itself.
-# Runs again on every push to the PR, so branch protection always has a fresh result.
+#
+# When it runs: tests on every push to the PR. The review only when the PR is opened, reopened or
+# marked ready for review, so a push with a fix doesn't pay for another review. To review the fixes,
+# close and reopen the PR: that runs both jobs on the latest commit.
 
 name: PR checks
 
@@ -20,8 +23,9 @@ on:
     branches: [develop]
     types: [opened, reopened, synchronize, ready_for_review]
 
+# A new push cancels the previous push's tests, but never cancels a review that is running.
 concurrency:
-  group: pr-checks-${{ github.event.pull_request.number }}
+  group: pr-checks-${{ github.event.pull_request.number }}-${{ github.event.action == 'synchronize' && 'push' || 'review' }}
   cancel-in-progress: true
 
 jobs:
@@ -59,7 +63,7 @@ jobs:
           npx ng test --watch=false --browsers=ChromeHeadless
 
   review:
-    if: github.event.pull_request.draft == false
+    if: github.event.pull_request.draft == false && github.event.action != 'synchronize'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -96,7 +100,7 @@ jobs:
             Write your review to review.md, then stop. Do not post anything and run no commands.
           claude_args: |
             --model haiku
-            --max-turns 30
+            --max-turns 40
             --allowedTools "Read,Grep,Glob,Write"
 
       - name: Post the review and check the verdict
